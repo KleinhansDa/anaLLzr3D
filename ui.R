@@ -170,7 +170,7 @@ library(dplyr)
                     box(h4("Hexagons"), width = 3, status = "warning", height = 600,
                       selectInput("hexstat", label = "statistic", selected = "median", c("mean"="mean",
                                                                                          "median"="median")),
-                      sliderInput("bin_adjust", label="size", min = 1, max = 30, value = 4, step = 0.5),
+                      sliderInput("bin_adjust", label="size", min = 1, max = 30, value = 5, step = 0.5),
                       #includeHTML("html/hexbins.html"),
                       selectInput("colorscale", label = "color scale", selected = "jet.colors",
                                   c("jet"="jet.colors",
@@ -192,16 +192,15 @@ library(dplyr)
                   ),
                 fluidRow(
                   box(h4("Variable"), width = 3, status = "warning",
-                    selectInput("dist_var", label = "choose from dropdown", selected = "Vol..unit.", choices = NULL
-                    ),
+                    selectInput("dist_var", label = "choose from dropdown", selected = "Vol..unit.", choices = NULL),
                     includeHTML("html/variable.html")),
                   box(h4("Smoothing"), width = 3, status = "warning",
                     sliderInput("bw_adjust", label = "", min = .01, max = 50, value = 20, step = 0.1),
                     includeHTML("html/distro.html")),
                   box(h4("Cleaning"), width = 3, status = "warning",
-                      sliderInput("q_vol", label = "quantiles", min = 0, max = 1, value = c(0, 1), step = .01))
+                      selectInput("outliers", label = "outlier detection", selected = "Tukey", choices = c("Tukey", "Z-score", "Mahalanobis")))
                   )
-        ),
+                ),
         ### counts ----------------------------
         tabItem(tabName = "counts",
                 fluidRow(

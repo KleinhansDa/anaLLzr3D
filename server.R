@@ -113,6 +113,9 @@ outliers_keep <- function(data) {
       switch(input$dataset,
              "sample data" = all,
              "my data" = {
+               validate(
+                 need(input$data_upload != "", "No data to process, please upload")
+               )
                #  load data
                   data_input <- input$data_upload
                #  empty filelist
@@ -139,7 +142,7 @@ outliers_keep <- function(data) {
                         dat <- dat %>% 
                           separate(Obj, c(input$lab_1, input$lab_2, input$lab_3, input$lab_4), "_")
                         dat$Label <- sub("-.*", "", dat$Label)
-                        dat$clearid <- paste0(dat$stage, dat$group, dat$pos, dat$date)
+                        dat$clearid <- paste0(dat$stage, dat$group, dat$id, dat$date)
                       # get scaling
                         Zcal <- dat$CZ..unit./dat$CZ..pix.                # To transform pix to unit value in Z
                         XYcal <- dat$CX..unit./dat$CX..pix.               # To transform pix to unit value in X and Y
@@ -185,7 +188,7 @@ outliers_keep <- function(data) {
                         dat$Obj <- filename
                         dat <- dat %>% 
                           separate(Obj, c(input$lab_1, input$lab_2, input$lab_3, input$lab_4), "_")
-                        dat$clearid <- paste0(dat$stage, dat$group, dat$pos, dat$date)
+                        dat$clearid <- paste0(dat$stage, dat$group, dat$id, dat$date)
                       # row bind
                         if (j > 1) {
                           temp <- rbind(temp, dat)
@@ -209,7 +212,7 @@ outliers_keep <- function(data) {
                         dat$Obj <- filename
                         dat <- dat %>% 
                           separate(Obj, c(input$lab_1, input$lab_2, input$lab_3, input$lab_4), "_")
-                        dat$clearid <- paste0(dat$stage, dat$group, dat$pos, dat$date)
+                        dat$clearid <- paste0(dat$stage, dat$group, dat$id, dat$date)
                       # normalize
                         dat$fx1N  <- max(dat$fx1array)-dat$fx1array   # normalize fx1 against leading edge
                         dat$fx0N  <- max(dat$fx0array)-dat$fx0array   # normalize fx0 against leading edge
@@ -227,10 +230,7 @@ outliers_keep <- function(data) {
                   rm(i, id)
                 # merge data
                   print("joining data")
-                  data <- data %>% 
-                    select(which(sapply(.,is.character)),
-                           which(sapply(.,is.factor)), 
-                           everything())
+                  data <- cbind(M_data, select_if(ac_data, is.numeric), select_if(feret_data, is.numeric))
                 # create factors
                   data$stage <- factor(data$stage)
                   data$group <- factor(data$group)
@@ -239,19 +239,23 @@ outliers_keep <- function(data) {
                   print(paste("groups: ", nlevels(data$group)))
                   print(paste("ids: ", nlevels(data$clearid)))
                 # sort data
-                  data <- cbind(select_if(data, is.factor), select_if(data, is.character), select_if(data, is.numeric))
+                  data <- data %>% 
+                    select(which(sapply(.,is.character)),
+                           which(sapply(.,is.factor)), 
+                           everything())
                 # merge major and minor aci
                   data$aci <- sqrt(data$ACIMajor*data$ACIMinor)
                 # normalize to lateral height
-                  data$aci <- Feret..unit./data$aci
-                  data$ACIMajor <- Feret..unit./data$ACIMajor 
-                  data$ACIMinor <- Feret..unit./data$ACIMajor 
+                  data$aci <- data$Feret..unit./data$aci
+                  data$ACIMajor <- data$Feret..unit./data$ACIMajor 
+                  data$ACIMinor <- data$Feret..unit./data$ACIMajor 
                 # clean quantiles
-                  all_out <- all %>%
-                    group_by(hpf, group) %>%
+                  data <- data %>%
+                    group_by(stage, group) %>%
                     mutate(vol_out = isnt_out_tukey(Vol..unit.)) %>%
-                    mutate(aci_out = isnt_out_tukey(ACIMajor))
-                  data <- data %>% filter(vol_out == "TRUE")
+                    mutate(aci_out = isnt_out_tukey(aci))
+                  data <- data %>% 
+                    filter(vol_out == "TRUE")
                   return(data)
              })
     })
@@ -290,8 +294,8 @@ outliers_keep <- function(data) {
   ## inputs --------------
     observe({
       data <- datasetInput()
-      cols_all <- names(dplyr::select_if(data, is.numeric))
-      cols <<- Filter(function(x) !any(grepl("*X|*Y|*Z|*array|*fx|*cx|*Moment|
+      cols_all <- names(Filter(is.numeric, data))
+      cols <- Filter(function(x) !any(grepl("*X|*Y|*Z|*array|*fx|*cx|*Moment|
                                             *Ell|*Ratio|*l..pix|*f..pix|*r..pix", x)), cols_all)
       updateSelectInput(session, 'hex_var',
                         choices = cols
@@ -317,11 +321,6 @@ outliers_keep <- function(data) {
         need(input$data_upload != "", "No data to process, please upload")
       )
       data <- datasetInput()
-      validate(
-        need(input$densvariable1 != "ACIMajor" & 
-               input$densvariable1 != "ACIMinor" &
-               input$densvariable1 != "MajorAngle", "ACI data not available, please choose another variable")
-      )
     }
     ## colors
       ggplot(data, aes_string(x=input$pointx, y=input$pointy, z=input$hex_var)) +
@@ -360,12 +359,6 @@ outliers_keep <- function(data) {
           need(input$data_upload != "", "No data to process, please upload")
         )
         data <- datasetInput()
-        #data <- read.table(data$datapath, sep = "\t", header=T)
-        #validate(
-        #  need(input$densvariable2 != "ACIMajor" & 
-        #         input$densvariable2 != "ACIMinor" &
-        #         input$densvariable2 != "MajorAngle", "ACI data not available, please choose another variable")
-        #)
       }
     # levels & colors
       levels_group <- levels(data$group)
@@ -376,7 +369,7 @@ outliers_keep <- function(data) {
         stat_density(aes(y=..density..), size=1.1, geom="line", bw=input$bw_adjust, position = "identity") +
         scale_colour_manual(values = colors, labels = levels_group, name="") +
         #scale_alpha_manual(values = c(0.8, 0.8, 0.8, 0.8, 0.8), guide = 'none') +
-        labs(title = input$dataset, subtitle = today, x = "single cell value", y = "Frequency", 
+        labs(title = input$dataset, subtitle = today, x = input$dist_var, y = "Frequency", 
              caption = paste("binwith:",input$bw_adjust)) +
         facet_grid(.~stage, scales = "free") +
         theme +
@@ -440,17 +433,16 @@ outliers_keep <- function(data) {
       # levels & colors
         levels_group <- levels(data$group)
         nlevels_group <- nlevels(data$group)
-        #colors <- brewer.pal(nlevels_group, "Set1")
         colors <- get_palette(palette = "npg", nlevels_group)
       # ggplot
       ggplot(dataset, aes_string(x = "group", y = "cell_count")) +
-        # geoms
+      # geoms
         stat_boxplot(aes_string(group="group"), geom ='errorbar', width=.2, position=position_dodge(width=.75), show.legend = F) +
         geom_boxplot(aes_string(group="group"), notch = T, outlier.shape = NULL, show.legend = F) +
-        geom_point(aes(group="group"), position=position_jitter(width = .1, height = 0), colour="grey50", 
+        geom_point(aes(group=group), position=position_jitter(width = .1, height = 0), colour="grey50", 
                    size = 3, shape=16, width = .1, height=.1, show.legend = F) +
         geom_boxplot(aes_string(group="group"), notch = T, outlier.shape = 4, outlier.size = 3, fill="transparent", show.legend = F) +
-        # stats
+      # stats
         stat_summary(aes_string(colour="group"), geom = "crossbar", position = position_dodge(width=.75),
                      width =.4, size=2, fatten=0, 
                      fun.data = function(x){c(y=median(x), ymin=median(x), ymax=median(x))}) +
@@ -459,7 +451,7 @@ outliers_keep <- function(data) {
                            method = input$stattestpair,
                            hide.ns = T, size = input$statlabelsize) +
         # scales
-        scale_colour_manual(values = colors, labels = levels_group, name="") +
+        #scale_colour_manual(values = colors, labels = levels_group, name="") +
         #scale_y_continuous(expand = c(0) +
         labs(title = input$dataset, subtitle = today, x = "groups", y = "cell count", 
              caption = paste("test:", input$stattestpair)) +
@@ -501,9 +493,7 @@ outliers_keep <- function(data) {
       #colors <- brewer.pal(nlevels_group, "Set1")
       colors <- get_palette(palette = "npg", nlevels_group)
     # subset
-      #browser()
       data <- data[ , sum_set]
-      #browser()
     # summarize
       data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
     # ggplot
@@ -548,11 +538,6 @@ outliers_keep <- function(data) {
         )
         data <- datasetInput()
         data <- read.table(data$datapath, sep = "\t", header=T)
-        validate(
-          need(input$statvariable != "ACIMajor" & 
-                 input$statvariable != "ACIMinor" &
-                 input$statvariable != "MajorAngle", "ACI data not available, please choose another variable")
-        )
       }
       # check stages
       if (c("hpf") %in% names(data)) {
@@ -609,12 +594,6 @@ outliers_keep <- function(data) {
           need(input$data_upload != "", "No data to process, please upload")
         )
         data <- datasetInput()
-        data <- read.table(data$datapath, sep = "\t", header=T)
-        validate(
-          need(input$statvariable != "ACIMajor" & 
-                 input$statvariable != "ACIMinor" &
-                 input$statvariable != "MajorAngle", "ACI data not available, please choose another variable")
-        )
       }
     # check stages
       if (c("hpf") %in% names(data)) {
@@ -665,12 +644,6 @@ outliers_keep <- function(data) {
           need(input$data_upload != "", "No data to process, please upload")
         )
         data <- datasetInput()
-        data <- read.table(data$datapath, sep = "\t", header=T)
-        validate(
-          need(input$statvariable != "ACIMajor" & 
-                 input$statvariable != "ACIMinor" &
-                 input$statvariable != "MajorAngle", "ACI data not available, please choose another variable")
-        )
       }
     # check stages
       if (c("hpf") %in% names(data)) {
@@ -685,7 +658,9 @@ outliers_keep <- function(data) {
                      "DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
       } else {
         sum_set <- c("stage", "group", "clearid", 
-                     "Feret..unit.", "Vol..unit.", "height..unit.")
+                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.",
+                     "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.","DCMean..unit.", "sav", "phi"
+                     )
       }
     # levels & colors
       levels_group <- levels(data$group)
@@ -699,7 +674,7 @@ outliers_keep <- function(data) {
         data <- data[, colSums(is.na(data)) != nrow(data)]
     # summarize
       #sumstat <- sumstatInput()
-      data_sum <- ddply(data, .(hpf,group, clearid), colwise(sumstatInput()))
+      data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
     # select only variables
       data_vars <- dplyr::select_if(data_sum, is.numeric)
       data.pca <- PCA(data_vars, graph = FALSE)
@@ -736,17 +711,6 @@ outliers_keep <- function(data) {
           need(input$data_upload != "", "No data to process, please upload")
         )
         data <- datasetInput()
-        data <- read.table(data$datapath, sep = "\t", header=T)
-        validate(
-          need(input$statvariable != "ACIMajor" & 
-                 input$statvariable != "ACIMinor" &
-                 input$statvariable != "MajorAngle", "ACI data not available, please choose another variable")
-        )
-      }
-    # check stages
-      if (c("hpf") %in% names(data)) {
-      } else {
-        data$hpf <- "undefined stage"
       }
     # check aci
       if (c("roset") %in% names(data)) {
@@ -756,42 +720,50 @@ outliers_keep <- function(data) {
                      "DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
       } else {
         sum_set <- c("stage", "group", "clearid", 
-                     "Feret..unit.", "Vol..unit.", "height..unit.")
+                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.",
+                     "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.","DCMean..unit.", "sav", "phi"
+                     )
       }
     # levels & colors
       levels_group <- levels(data$group)
       nlevels_group <- nlevels(data$group)
+      data$clearid <- factor(data$clearid)
+      nlevels_id <- nlevels(data$clearid)
+      print(paste("id levels", nlevels_id))
+      print(paste("id levels", (nlevels_id/nlevels_group)/2))
+      #browser()
+      perplexity <- (nlevels_id/nlevels_group)/3
       #colors <- brewer.pal(nlevels_group, "Set1")
       colors <- get_palette(palette = "npg", nlevels_group)
     # subset
       data <- data[complete.cases(data), ]
       data <- data[ , sum_set]
     # sumamrize
-      data_sum <- ddply(data, .(hpf, group, clearid), colwise(sumstatInput()))
+      data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
     # prepare df
       #data <- data[complete.cases(data), ]
       data_vars <- dplyr::select_if(data_sum, is.numeric)
     # calculate tSNE
       data.tsne <- Rtsne(as.matrix(data_vars),
-                         #initial_dims = nlevels_group,
+                         initial_dims = nlevels_group,
                          check_duplicates = FALSE,
                          normalize = T, pca = TRUE, 
-                         perplexity = 20, verbose = T,
+                         perplexity = perplexity, verbose = T,
                          num_threads = 0, dims = 2)
     # get dataframe
       data.tsne.dims = as.data.frame(data.tsne$Y)
     # create labels
       data.tsne.dims$group <- data_sum$group
-      data.tsne.dims$hpf <- data_sum$hpf
+      data.tsne.dims$hpf <- data_sum$stage
     # ggplot
       ggplot(data.tsne.dims, aes(x=V1, y=V2)) +  
         #geom_density2d() +
-        stat_ellipse(aes(colour=group, fill=group), size=.5, level = 0.9, geom = "polygon", alpha=.1) +
+        stat_ellipse(aes(colour=group, fill=group), size=.5, level = 0.95, geom = "polygon", alpha=.1) +
         geom_point(aes(colour=group), size=2, shape=16, alpha=.75) +
         scale_colour_manual(values = colors, name="") +
         scale_fill_manual(values = colors, name="") +
         #scale_colour_brewer(palette = "Set1") +
-        labs(title=input$dataset, subtitle = today, caption = "ellipse level = 0.95\nperplexity = 20") +
+        labs(title=input$dataset, subtitle = today, caption = paste("ellipse level = 0.95\nperplexity =", perplexity)) +
         facet_grid(.~hpf) +
         theme
       
