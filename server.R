@@ -1,11 +1,29 @@
-#
-testit <- function(x)
-{
+# functions ----------------------------------------------------------------------
+testit <- function(x) {
   p1 <- proc.time()
   Sys.sleep(x)
   proc.time() - p1 # The cpu usage should be negligible
 }
-testit(3.7)
+outliers_remove <- function(data) {
+  lo_q = quantile(data)[2]
+  up_q = quantile(data)[4]
+# identify outliers
+  up_out = (IQR(data) * 3) + up_q
+  lo_out = lo_q - (IQR(data) * 3)
+# remove outliers
+  out <- which(data < up_out | data > lo_out)
+  #print(out)
+}
+outliers_keep <- function(data) {
+  lo_q = quantile(data)[2]
+  up_q = quantile(data)[4]
+  # identify outliers
+  up_out = (IQR(data) * 3) + up_q
+  lo_out = lo_q - (IQR(data) * 3)
+  # remove outliers
+  out <- which(data > up_out | data < lo_out)
+  #print(out)
+}
 #
 # libraries ----------------------------------------------------------------------
   library(ggplot2)
@@ -126,20 +144,21 @@ testit(3.7)
                         Zcal <- dat$CZ..unit./dat$CZ..pix.                # To transform pix to unit value in Z
                         XYcal <- dat$CX..unit./dat$CX..pix.               # To transform pix to unit value in X and Y
                       # calculate variables
-                      # bxlxh
-                        dat$height..unit. <- (dat$Zmax..pix.-dat$Zmin..pix.)*Zcal  # calculate Height and transform to unit value
-                        dat$length..unit. <- (dat$Xmax..pix.-dat$Xmin..pix.)*XYcal # calculate Length and transform to unit value
-                        dat$width..unit. <- (dat$Ymax..pix.-dat$Ymin..pix.)*XYcal  # calculate Width and transform to unit value
-                      # ratios
-                        dat$sav <- dat$Surf..unit./dat$Vol..unit.           # calculate Surface Area to Volume ratio
-                        dat$hf <- dat$height/dat$Feret..unit.               # calculate Height/Feret ratio
-                        dat$phi <- ((atan(dat$height/dat$Feret..unit.))*180)/pi  # calculate Phi
-                      # label trailing and leading
-                        dat$cxn <- (max(dat$CX..pix.)-dat$CX..pix.)*XYcal   # normalize CX against leading edge
-                        trail <- quantile(dat$cxn, 0.2, na.rm=TRUE)
-                        dat$lt_split <- cut(dat$cxn, breaks = c(-Inf, trail, Inf), labels = c("leading", "trailing"))
-                      # label midline
-                        dat$ml_split <- cut(dat$CY..unit, seq(from=0, to=45, by=15), labels = c("lateral", "midline", "lateral"))
+                        # b*l*h
+                          dat$height..unit. <- (dat$Zmax..pix.-dat$Zmin..pix.)*Zcal  # calculate Height and transform to unit value
+                          dat$length..unit. <- (dat$Xmax..pix.-dat$Xmin..pix.)*XYcal # calculate Length and transform to unit value
+                          dat$width..unit. <- (dat$Ymax..pix.-dat$Ymin..pix.)*XYcal  # calculate Width and transform to unit value
+                        # ratios
+                          dat$sav <- dat$Surf..unit./dat$Vol..unit.           # calculate Surface Area to Volume ratio
+                          dat$hf <- dat$height/dat$Feret..unit.               # calculate Height/Feret ratio
+                          dat$phi <- ((atan(dat$height/dat$Feret..unit.))*180)/pi  # calculate Phi
+                      # labels
+                        # label trailing and leading
+                          dat$cxn <- (max(dat$CX..pix.)-dat$CX..pix.)*XYcal   # normalize CX against leading edge
+                          trail <- quantile(dat$cxn, 0.2, na.rm=TRUE)
+                          dat$lt_split <- cut(dat$cxn, breaks = c(-Inf, trail, Inf), labels = c("leading", "trailing"))
+                        # label midline
+                          dat$ml_split <- cut(dat$CY..unit, seq(from=0, to=45, by=15), labels = c("lateral", "midline", "lateral"))
                       # transform pix to microns
                         dat$Zmax..pix. <- dat$Zmax..pix.*Zcal
                         dat$Zmin..pix. <- dat$Zmin..pix.*Zcal
@@ -157,19 +176,17 @@ testit(3.7)
                       print("processing AC data")
                       for (j in 1:length(fl.names[[i]])) {
                         dat <- read.table(fl[[i]][j], sep="\t", header=TRUE)
-                      # delete columns + split label
+                      # delete columns
                         dat$objlabelArray <- NULL
                         dat$X <- NULL
                       # filename
                         filename <- tools::file_path_sans_ext(fl.names[[i]][j]) # remove extension
-                        #print(filename)
                         filename <- sub("*ac_", "", filename) # remove data-group id
                         dat$Obj <- filename
                         dat <- dat %>% 
                           separate(Obj, c(input$lab_1, input$lab_2, input$lab_3, input$lab_4), "_")
                         dat$clearid <- paste0(dat$stage, dat$group, dat$pos, dat$date)
-                        #print(head(dat))
-                        # row bind
+                      # row bind
                         if (j > 1) {
                           temp <- rbind(temp, dat)
                         } else {
@@ -182,7 +199,7 @@ testit(3.7)
                       print("processing feret data")
                       for (j in 1:length(fl.names[[i]])) {
                         dat <- read.table(fl[[i]][j], sep="\t", header=TRUE)
-                      # delete columns + split label
+                      # delete columns
                         dat$objlabelArray <- NULL
                         dat$X <- NULL
                       # filename
@@ -196,8 +213,7 @@ testit(3.7)
                       # normalize
                         dat$fx1N  <- max(dat$fx1array)-dat$fx1array   # normalize fx1 against leading edge
                         dat$fx0N  <- max(dat$fx0array)-dat$fx0array   # normalize fx0 against leading edge
-                        #print(head(dat))
-                        # row bind
+                      # row bind
                         if (j > 1) {
                           temp <- rbind(temp, dat)
                         } else {
@@ -211,18 +227,31 @@ testit(3.7)
                   rm(i, id)
                 # merge data
                   print("joining data")
-                  data <- cbind(M_data, select_if(ac_data, is.numeric), select_if(feret_data, is.numeric))
+                  data <- data %>% 
+                    select(which(sapply(.,is.character)),
+                           which(sapply(.,is.factor)), 
+                           everything())
+                # create factors
                   data$stage <- factor(data$stage)
                   data$group <- factor(data$group)
                   data$clearid <- factor(data$clearid)
                   print(paste("stages: ", nlevels(data$stage)))
                   print(paste("groups: ", nlevels(data$group)))
                   print(paste("ids: ", nlevels(data$clearid)))
+                # sort data
                   data <- cbind(select_if(data, is.factor), select_if(data, is.character), select_if(data, is.numeric))
-                  data <- subset(data, 
-                                 data$Vol..unit. < quantile(data$Vol..unit., (1-input$q_vol[1]), na.rm=TRUE) &
-                                   data$Vol..unit. > quantile(data$Vol..unit., input$q_vol[2], na.rm=TRUE))
-                  #browser()
+                # merge major and minor aci
+                  data$aci <- sqrt(data$ACIMajor*data$ACIMinor)
+                # normalize to lateral height
+                  data$aci <- Feret..unit./data$aci
+                  data$ACIMajor <- Feret..unit./data$ACIMajor 
+                  data$ACIMinor <- Feret..unit./data$ACIMajor 
+                # clean quantiles
+                  all_out <- all %>%
+                    group_by(hpf, group) %>%
+                    mutate(vol_out = isnt_out_tukey(Vol..unit.)) %>%
+                    mutate(aci_out = isnt_out_tukey(ACIMajor))
+                  data <- data %>% filter(vol_out == "TRUE")
                   return(data)
              })
     })
