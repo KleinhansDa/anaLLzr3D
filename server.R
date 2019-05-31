@@ -142,7 +142,9 @@ outliers_keep <- function(data) {
                         dat <- dat %>% 
                           separate(Obj, c(input$lab_1, input$lab_2, input$lab_3, input$lab_4), "_")
                         dat$Label <- sub("-.*", "", dat$Label)
+                        dat$obj <- 0:(nrow(dat)-1)
                         dat$clearid <- paste0(dat$stage, dat$group, dat$id, dat$date)
+                        dat$clearobj <- paste0(dat$stage, dat$group, dat$id, dat$date, dat$obj)
                       # get scaling
                         Zcal <- dat$CZ..unit./dat$CZ..pix.                # To transform pix to unit value in Z
                         XYcal <- dat$CX..unit./dat$CX..pix.               # To transform pix to unit value in X and Y
@@ -188,7 +190,9 @@ outliers_keep <- function(data) {
                         dat$Obj <- filename
                         dat <- dat %>% 
                           separate(Obj, c(input$lab_1, input$lab_2, input$lab_3, input$lab_4), "_")
+                        dat$obj <- 0:(nrow(dat)-1)
                         dat$clearid <- paste0(dat$stage, dat$group, dat$id, dat$date)
+                        dat$clearobj <- paste0(dat$stage, dat$group, dat$id, dat$date, dat$obj)
                       # row bind
                         if (j > 1) {
                           temp <- rbind(temp, dat)
@@ -212,7 +216,9 @@ outliers_keep <- function(data) {
                         dat$Obj <- filename
                         dat <- dat %>% 
                           separate(Obj, c(input$lab_1, input$lab_2, input$lab_3, input$lab_4), "_")
+                        dat$obj <- 0:(nrow(dat)-1)
                         dat$clearid <- paste0(dat$stage, dat$group, dat$id, dat$date)
+                        dat$clearobj <- paste0(dat$stage, dat$group, dat$id, dat$date, dat$obj)
                       # normalize
                         dat$fx1N  <- max(dat$fx1array)-dat$fx1array   # normalize fx1 against leading edge
                         dat$fx0N  <- max(dat$fx0array)-dat$fx0array   # normalize fx0 against leading edge
@@ -231,6 +237,9 @@ outliers_keep <- function(data) {
                 # merge data
                   print("joining data")
                   data <- cbind(M_data, select_if(ac_data, is.numeric), select_if(feret_data, is.numeric))
+                  data <- join(M_data, ac_data, by="clearobj")
+                  data <- join(data, feret_data, by="clearobj")
+                  data <- data[!duplicated(as.list(data))]
                 # create factors
                   data$stage <- factor(data$stage)
                   data$group <- factor(data$group)
@@ -239,7 +248,7 @@ outliers_keep <- function(data) {
                   print(paste("groups: ", nlevels(data$group)))
                   print(paste("ids: ", nlevels(data$clearid)))
                 # sort data
-                  data <- data %>% 
+                  data <- data %>%
                     select(which(sapply(.,is.character)),
                            which(sapply(.,is.factor)), 
                            everything())
@@ -248,17 +257,18 @@ outliers_keep <- function(data) {
                 # normalize to lateral height
                   data$aci <- data$Feret..unit./data$aci
                   data$ACIMajor <- data$Feret..unit./data$ACIMajor 
-                  data$ACIMinor <- data$Feret..unit./data$ACIMajor 
+                  data$ACIMinor <- data$Feret..unit./data$ACIMajor
                 # clean quantiles
                   data <- data %>%
                     group_by(stage, group) %>%
                     mutate(vol_out = isnt_out_tukey(Vol..unit.)) %>%
                     mutate(aci_out = isnt_out_tukey(aci))
-                  data <- data %>% 
+                  data <- data %>%
                     filter(vol_out == "TRUE")
                   return(data)
              })
     })
+    ### dataset.name --------------
     datasetname <- reactive({
       input$dataset
     })
@@ -291,6 +301,22 @@ outliers_keep <- function(data) {
     output$datasetname <- renderText({
       datasetname()
     })
+    ### ref groups reactive ui --------------
+    output$refgroup <- reactiveUI(function(){
+      data <- datasetInput()
+      levels <- levels(data$group)
+      selectInput("ref_group", "ref.group", levels)
+    })
+    ### factor groups reactive ui --------------
+    output$grouplevels <- reactiveUI(function(){
+      data <- datasetInput()
+      nlevels <- nlevels(data$group)
+      nstage <- nlevels(data$stage)
+      nid <- nlevels(data$clearid)
+      nobj <- nrow(data)
+      paste("The dataset consists of", nstage, "stages,", nlevels, "groups,", nid, "embryos and", nobj, "single cells.")
+    })
+    
   ## inputs --------------
     observe({
       data <- datasetInput()
@@ -335,11 +361,11 @@ outliers_keep <- function(data) {
                   #aes(xmin=0, ymin=min(fy1array), xmax = quantile(CXN, probs = c(0.15)), ymax=max(fy1array)), show.legend = F, fill="grey80") +
         stat_summary_hex(fun=hexstatInput(), binwidth = c(input$bin_adjust, input$bin_adjust)) +
         geom_vline(aes(xintercept = min(cxn), colour="L.E."), linetype=1, size=.5, show.legend = TRUE) +
-        coord_fixed() +
+        coord_fixed(xlim = c(200, 0)) +
         scale_fill_gradientn(colours = colorscaleInput(), name=input$colorscale) +
         scale_color_manual(name = "", values=c("L.E." = "blue", "trailing" = "black")) +
         #scale_linetype_manual(name = "t", values=c("leading edge" = 1, "trailing" = 2)) +
-        scale_x_reverse(limits = c(200, 0), breaks = seq(20, 180, 30)) +
+        scale_x_reverse(breaks = seq(20, 180, 30)) +
         scale_y_continuous(breaks = seq(10, 45, 15)) +
         facet_grid(group~stage) +
         labs(title = input$dataset, subtitle = today, x = input$pointx, y = input$pointy, caption = paste("haxagon size:")) +
@@ -402,8 +428,8 @@ outliers_keep <- function(data) {
         scale_fill_manual(values = colors, labels=levels_group, name="") +
         stat_compare_means(aes_string(label = input$statlabel),
                            method = input$stattestpair, 
-                           ref.group = levels_group[1],
-                           hide.ns = T, size = input$statlabelsize) +
+                           ref.group = input$ref_group,
+                           hide.ns = F, size = input$statlabelsize) +
         labs(title = input$dataset, subtitle = today, y = input$statvariable,
              caption = paste("quantiles", " = 0.25, 0.5, 0.75", "\ntest:", input$stattestpair)) +
         facet_grid(.~stage) +
@@ -447,9 +473,9 @@ outliers_keep <- function(data) {
                      width =.4, size=2, fatten=0, 
                      fun.data = function(x){c(y=median(x), ymin=median(x), ymax=median(x))}) +
         stat_compare_means(aes_string(label = input$statlabel),
-                           ref.group = levels_group[1],
+                           ref.group = input$ref_group,
                            method = input$stattestpair,
-                           hide.ns = T, size = input$statlabelsize) +
+                           hide.ns = F, size = input$statlabelsize) +
         # scales
         #scale_colour_manual(values = colors, labels = levels_group, name="") +
         #scale_y_continuous(expand = c(0) +
@@ -479,13 +505,15 @@ outliers_keep <- function(data) {
     # check aci
     if (c("roset") %in% names(data)) {
       sum_set <- c("stage", "group", "clearid", 
-                   "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.", 
-                   "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.",
-                   "DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
+                   "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                   "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
+                   "detect", "w.detect", "roset")
     } else {
-      sum_set <- c("stage", "group", "clearid", "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.", 
-                   "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.",
-                   "DCMean..unit.", "sav", "phi")
+      sum_set <- c("stage", "group", "clearid", 
+                   "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                   "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
     }
     # levels & colors
       levels_group <- levels(data$group)
@@ -509,9 +537,9 @@ outliers_keep <- function(data) {
                     width =.4, size=2, fatten=0, 
                     fun.data = function(x){c(y=median(x), ymin=median(x), ymax=median(x))}) +
         stat_compare_means(aes_string(label = input$statlabel),
-                           ref.group = levels_group[1],
+                           ref.group = input$ref_group,
                            method = input$stattestpair,
-                           hide.ns = T, size = input$statlabelsize) +
+                           hide.ns = F, size = input$statlabelsize) +
       # scales
         scale_colour_manual(values = colors, labels = levels_group, name="") +
         #scale_y_continuous(expand = c(0) +
@@ -545,12 +573,17 @@ outliers_keep <- function(data) {
         data$hpf <- "undefined stage"
       }
       # check aci
-      if (c("ACIMajor") %in% names(data)) {
-        sum_set <- c("hpf", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "Vol..unit.", "height..unit.", "detect", "w.detect", "roset")
+      if (c("roset") %in% names(data)) {
+        sum_set <- c("stage", "group", "clearid", 
+                     "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                     "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.",
+                     "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
+                     "detect", "w.detect", "roset")
       } else {
-        sum_set <- c("hpf", "group", "clearid", 
-                     "Feret..unit.", "Vol..unit.", "height..unit.")
+        sum_set <- c("stage", "group", "clearid", 
+                     "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                     "Feret..unit.", "height..unit.", "Vol..unit.", "Surf..unit.", "sav", 
+                     "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
       }
     # levels & colors
       levels_group <- levels(data$group)
@@ -595,18 +628,18 @@ outliers_keep <- function(data) {
         )
         data <- datasetInput()
       }
-    # check stages
-      if (c("hpf") %in% names(data)) {
-      } else {
-        data$hpf <- "undefined stage"
-      }
     # check aci
-      if (c("ACIMajor") %in% names(data)) {
-        sum_set <- c("hpf", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "Vol..unit.", "height..unit.", "detect", "w.detect", "roset")
+      if (c("roset") %in% names(data)) {
+        sum_set <- c("stage", "group", "clearid", 
+                     "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
+                     "detect", "w.detect", "roset")
       } else {
-        sum_set <- c("hpf", "group", "clearid", 
-                     "Feret..unit.", "Vol..unit.", "height..unit.")
+        sum_set <- c("stage", "group", "clearid", 
+                     "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
       }
     # levels & colors
       levels_group <- levels(data$group)
@@ -616,7 +649,7 @@ outliers_keep <- function(data) {
     # subset
       data <- data[ , sum_set]
     # summarize
-      data_sum <- ddply(data, .(hpf, group, clearid), colwise(sumstatInput()))
+      data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
       data_sum <- subset(data_sum, !roset==0)
     # ggplot
       ggplot(data_sum, aes_string(x = input$scatvar1, y = input$scatvar2)) +
@@ -645,22 +678,18 @@ outliers_keep <- function(data) {
         )
         data <- datasetInput()
       }
-    # check stages
-      if (c("hpf") %in% names(data)) {
-      } else {
-        data$hpf <- "undefined stage"
-      }
     # check aci
       if (c("roset") %in% names(data)) {
         sum_set <- c("stage", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.", 
-                     "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.",
-                     "DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
+                     "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
+                     "detect", "w.detect", "roset")
       } else {
         sum_set <- c("stage", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.",
-                     "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.","DCMean..unit.", "sav", "phi"
-                     )
+                     "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
       }
     # levels & colors
       levels_group <- levels(data$group)
@@ -715,14 +744,15 @@ outliers_keep <- function(data) {
     # check aci
       if (c("roset") %in% names(data)) {
         sum_set <- c("stage", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.", 
-                     "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.",
-                     "DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
+                     "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
+                     "detect", "w.detect", "roset")
       } else {
         sum_set <- c("stage", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.",
-                     "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.","DCMean..unit.", "sav", "phi"
-                     )
+                     "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
       }
     # levels & colors
       levels_group <- levels(data$group)
@@ -813,11 +843,11 @@ outliers_keep <- function(data) {
     # fill with content
     content = function(file) {
       data <- datasetInput()
-      p <- ggplot(data, aes_string(x=input$pointx, y=input$pointy, z=input$densvariable1)) +
+      p <- ggplot(data, aes_string(x=input$pointx, y=input$pointy, z=input$hex_var)) +
         stat_summary_hex(fun=hexstatInput(), binwidth = c(input$bin_adjust, input$bin_adjust)) +
         geom_vline(aes(xintercept = min(cxn), colour="L.E."), linetype=1, size=.5, show.legend = TRUE) +
         coord_fixed() +
-        scale_fill_gradientn(colours = colorscaleInput()) +
+        scale_fill_gradientn(colours = colorscaleInput(), name=input$colorscale) +
         scale_color_manual(name = "", values=c("L.E." = "blue", "trailing" = "black")) +
         scale_x_reverse(limits = c(200, 0), breaks = seq(20, 180, 30)) +
         scale_y_continuous(breaks = seq(10, 45, 15)) +

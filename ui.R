@@ -61,6 +61,7 @@ library(dplyr)
                  menuItem(statopts, startExpanded = TRUE, icon = icon("eye"), 
                           radioButtons("sumstat", "summary function", selected = "median", inline = F,
                                       choices = c("median", "mean", "min", "max")),
+                          uiOutput("refgroup"),
                           selectInput("stattestpair", label = "test statistic", selected = "wilcox.test",
                                       c("Mann-Whitney" = "wilcox.test",
                                         "Students-T" = "t.test")),
@@ -117,6 +118,7 @@ library(dplyr)
                 fluidRow(
                   box(status = "primary", title=textOutput("datasetname"),
                       #textOutput("datasetname"),
+                      uiOutput("grouplevels"),
                       tableOutput("data_sum"),
                       downloadButton("downloadData", "Download")
                   ),
