@@ -244,9 +244,9 @@ outliers_keep <- function(data) {
                   data$stage <- factor(data$stage)
                   data$group <- factor(data$group)
                   data$clearid <- factor(data$clearid)
-                  print(paste("stages: ", nlevels(data$stage)))
-                  print(paste("groups: ", nlevels(data$group)))
-                  print(paste("ids: ", nlevels(data$clearid)))
+                  #print(paste("stages: ", nlevels(data$stage)))
+                  #print(paste("groups: ", nlevels(data$group)))
+                  #print(paste("ids: ", nlevels(data$clearid)))
                 # sort data
                   data <- data %>%
                     select(which(sapply(.,is.character)),
@@ -262,9 +262,12 @@ outliers_keep <- function(data) {
                   data <- data %>%
                     group_by(stage, group) %>%
                     mutate(vol_out = isnt_out_tukey(Vol..unit.)) %>%
-                    mutate(aci_out = isnt_out_tukey(aci))
+                    mutate(aci_out = isnt_out_tukey(aci)) %>%
+                    mutate(sav_out = isnt_out_tukey(sav))
                   data <- data %>%
-                    filter(vol_out == "TRUE")
+                    filter(vol_out == "TRUE") %>%
+                    filter(aci_out == "TRUE") %>%
+                    filter(sav_out == "TRUE")
                   return(data)
              })
     })
@@ -457,6 +460,7 @@ outliers_keep <- function(data) {
                        cell_count_avg = round((length(clearid)/length(unique(clearid))), digits = 1)
       )
       # levels & colors
+        data$group <- relevel(data$group, input$ref_group)
         levels_group <- levels(data$group)
         nlevels_group <- nlevels(data$group)
         colors <- get_palette(palette = "npg", nlevels_group)
@@ -477,7 +481,7 @@ outliers_keep <- function(data) {
                            method = input$stattestpair,
                            hide.ns = F, size = input$statlabelsize) +
         # scales
-        #scale_colour_manual(values = colors, labels = levels_group, name="") +
+        scale_colour_manual(values = colors, labels = levels_group, name="") +
         #scale_y_continuous(expand = c(0) +
         labs(title = input$dataset, subtitle = today, x = "groups", y = "cell count", 
              caption = paste("test:", input$stattestpair)) +
@@ -506,16 +510,19 @@ outliers_keep <- function(data) {
     if (c("roset") %in% names(data)) {
       sum_set <- c("stage", "group", "clearid", 
                    "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                   "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
                    "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
                    "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
                    "detect", "w.detect", "roset")
     } else {
       sum_set <- c("stage", "group", "clearid", 
                    "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                   "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
                    "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
                    "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
     }
     # levels & colors
+      data$group <- relevel(data$group, input$ref_group)
       levels_group <- levels(data$group)
       nlevels_group <- nlevels(data$group)
       #colors <- brewer.pal(nlevels_group, "Set1")
@@ -650,7 +657,9 @@ outliers_keep <- function(data) {
       data <- data[ , sum_set]
     # summarize
       data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
-      data_sum <- subset(data_sum, !roset==0)
+      if (c("roset") %in% names(data)) {
+        data_sum <- subset(data_sum, !roset==0)
+      }
     # ggplot
       ggplot(data_sum, aes_string(x = input$scatvar1, y = input$scatvar2)) +
       # geoms
