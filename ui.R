@@ -193,13 +193,13 @@ library(dplyr)
                       column(width = 12, plotOutput("frequencies") %>% withLoader(type="image", loader="loader.gif")))
                   ),
                 fluidRow(
-                  box(h4("Variable"), width = 3, status = "warning",
-                    selectInput("dist_var", label = "choose from dropdown", selected = "Vol..unit.", choices = NULL),
+                  box(h4("variable"), width = 3, status = "warning",
+                    selectInput("dist_var", label = "choose from dropdown", selected = NULL, choices = NULL),
                     includeHTML("html/variable.html")),
-                  box(h4("Smoothing"), width = 3, status = "warning",
+                  box(h4("smoothing"), width = 3, status = "warning",
                     sliderInput("bw_adjust", label = "", min = .01, max = 50, value = 20, step = 0.1),
                     includeHTML("html/distro.html")),
-                  box(h4("Cleaning"), width = 3, status = "warning",
+                  box(h4("cleaning"), width = 3, status = "warning",
                       selectInput("outliers", label = "outlier detection", selected = "Tukey", choices = c("Tukey", "Z-score", "Mahalanobis")))
                   )
                 ),
@@ -252,8 +252,8 @@ library(dplyr)
                 ),
                 fluidRow(
                 box(h4("scatter"), width = 5, status = "warning",
-                    selectInput("scatvar1", label = "X variable", selected = vars[1], vars),
-                    selectInput("scatvar2", label = "Y variable", selected = vars[2], vars),
+                    selectInput("scat_var1", label = "X variable", selected = NULL, choices = NULL),
+                    selectInput("scat_var2", label = "Y variable", selected = NULL, choices = NULL),
                     includeHTML("html/variable.html")),
                 box(h4("statistics"), width = 3, status = "warning",
                     selectInput("fitstat", "fit function", c("lm", "glm", "loess")),
@@ -310,7 +310,7 @@ library(dplyr)
                 ),
                 fluidRow(
                   box(h4("variable"), width = 5, status = "warning",
-                    selectInput("viol_var", label = "choose from dropdown", vars),
+                    selectInput("viol_var", label = "choose from dropdown", selected = NULL, choices = NULL),
                     includeHTML("html/variable.html")),
                   box(h4("statistics"), width = 3, status = "warning",
                     includeHTML("html/signif.html")),

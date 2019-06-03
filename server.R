@@ -337,6 +337,18 @@ outliers_keep <- function(data) {
                         choices = cols,
                         selected = cols[2]
       )
+      updateSelectInput(session, 'viol_var',
+                        choices = cols,
+                        selected = cols[2]
+      )
+      updateSelectInput(session, 'scat_var1',
+                        choices = cols,
+                        selected = cols[2]
+      )
+      updateSelectInput(session, 'scat_var2',
+                        choices = cols,
+                        selected = cols[6]
+      )
       })
     
   ## hexbins ----------------------------
@@ -420,11 +432,11 @@ outliers_keep <- function(data) {
         data <- datasetInput()
       }
     # levels & colors
+      data$group <- relevel(data$group, input$ref_group)
       levels_group <- levels(data$group)
       nlevels_group <- nlevels(data$group)
       #colors <- brewer.pal(nlevels_group, "Set1")
       colors <- get_palette(palette = "npg", nlevels_group)
-
     # ggplot
       ggplot(data, aes_string(x = "group", y = input$viol_var, fill="group")) +
         stat_ydensity(aes(), geom = "violin", adjust = .5, kernel = "gaussian",
@@ -455,7 +467,8 @@ outliers_keep <- function(data) {
         )
         data <- datasetInput()
       }
-      dataset <- ddply(data, .(stage, group, clearid), plyr::summarize,
+      # sum data
+      data <- ddply(data, .(stage, group, clearid), plyr::summarize,
                        prim_count = length(unique(clearid)),
                        cell_count = length(clearid),
                        cell_count_avg = round((length(clearid)/length(unique(clearid))), digits = 1)
@@ -466,7 +479,7 @@ outliers_keep <- function(data) {
         nlevels_group <- nlevels(data$group)
         colors <- get_palette(palette = "npg", nlevels_group)
       # ggplot
-      ggplot(dataset, aes_string(x = "group", y = "cell_count")) +
+      ggplot(data, aes_string(x = "group", y = "cell_count")) +
       # geoms
         stat_boxplot(aes_string(group="group"), geom ='errorbar', width=.2, position=position_dodge(width=.75), show.legend = F) +
         geom_boxplot(aes_string(group="group"), notch = T, outlier.shape = NULL, show.legend = F) +
@@ -483,6 +496,7 @@ outliers_keep <- function(data) {
                            hide.ns = F, size = input$statlabelsize) +
         # scales
         scale_colour_manual(values = colors, labels = levels_group, name="") +
+        scale_x_discrete(levels_group) +
         #scale_y_continuous(expand = c(0) +
         labs(title = input$dataset, subtitle = today, x = "groups", y = "cell count", 
              caption = paste("test:", input$stattestpair)) +
@@ -523,6 +537,7 @@ outliers_keep <- function(data) {
                    "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
     }
     # levels & colors
+      data$group <- relevel(data$group, input$ref_group)
       levels_group <- levels(data$group)
       nlevels_group <- nlevels(data$group)
       #colors <- brewer.pal(nlevels_group, "Set1")
@@ -636,18 +651,20 @@ outliers_keep <- function(data) {
         data <- datasetInput()
       }
     # check aci
-      if (c("roset") %in% names(data)) {
-        sum_set <- c("stage", "group", "clearid", 
-                     "aci_major", "aci_minor", "aci_angle", "aci", "phi",
-                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
-                     "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
-                     "detect", "w.detect", "roset")
-      } else {
-        sum_set <- c("stage", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
-                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
-                     "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
-      }
+    if (c("roset") %in% names(data)) {
+      sum_set <- c("stage", "group", "clearid", 
+                   "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                   "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                   "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
+                   "detect", "w.detect", "roset")
+    } else {
+      sum_set <- c("stage", "group", "clearid", 
+                   "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                   "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                   "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
+    }
     # levels & colors
       levels_group <- levels(data$group)
       nlevels_group <- nlevels(data$group)
@@ -661,7 +678,7 @@ outliers_keep <- function(data) {
         data_sum <- subset(data_sum, !roset==0)
       }
     # ggplot
-      ggplot(data_sum, aes_string(x = input$scatvar1, y = input$scatvar2)) +
+      ggplot(data_sum, aes_string(x = input$scat_var1, y = input$scat_var2)) +
       # geoms
         stat_ellipse(aes_string(colour="group", fill="group"), size=.5, level = 0.9, geom = "polygon", alpha=.1) +
         geom_point(aes_string(colour="group"), size = 3, alpha = .5, shape = 16) +
@@ -723,7 +740,7 @@ outliers_keep <- function(data) {
                                           title = input$dataset, subtitle = today, caption = "ellipse level = 0.95",
                                           pointsize = 3, pointshape = 16, 
                                           addEllipses = TRUE, ellipse.level = 0.95,
-                                          label="var", repel=T, col.var = "black", labelsize = 5,
+                                          label = "var", repel = T, col.var = "black", labelsize = 5,
                                           habillage = data_sum$group, palette = colors,
                                           ggtheme = theme),
                "show none" = fviz_pca_ind(data.pca,
@@ -815,10 +832,9 @@ outliers_keep <- function(data) {
     } 
     if (input$dataset == "my data"){
       validate(
-        need(input$data_upload != "", "No data to process, please upload")
+        need(input$data_upload != "", "")
       )
       data <- datasetInput()
-      #data <- read.table(data$datapath, sep = "\t", header=T)
     }
     dataset <- ddply(data, .(stage, group), plyr::summarize,
                      prim_count = length(unique(clearid)),
