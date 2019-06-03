@@ -236,9 +236,9 @@ outliers_keep <- function(data) {
                   rm(i, id)
                 # merge data
                   print("joining data")
-                  data <- cbind(M_data, select_if(ac_data, is.numeric), select_if(feret_data, is.numeric))
-                  data <- join(M_data, ac_data, by="clearobj")
-                  data <- join(data, feret_data, by="clearobj")
+                  #data <- cbind(M_data, select_if(ac_data, is.numeric), select_if(feret_data, is.numeric))
+                  data <- join(M_data, ac_data, by="clearobj") %>%
+                    join(., feret_data, by="clearobj")
                   data <- data[!duplicated(as.list(data))]
                 # create factors
                   data$stage <- factor(data$stage)
@@ -351,6 +351,7 @@ outliers_keep <- function(data) {
       )
       data <- datasetInput()
     }
+    data$group <- relevel(data$group, input$ref_group)
     ## colors
       ggplot(data, aes_string(x=input$pointx, y=input$pointy, z=input$hex_var)) +
         #stat_density_2d(aes(fill=..density..), geom="raster", contour=FALSE) +
@@ -522,7 +523,6 @@ outliers_keep <- function(data) {
                    "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
     }
     # levels & colors
-      data$group <- relevel(data$group, input$ref_group)
       levels_group <- levels(data$group)
       nlevels_group <- nlevels(data$group)
       #colors <- brewer.pal(nlevels_group, "Set1")
