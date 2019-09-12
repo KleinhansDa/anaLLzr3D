@@ -172,7 +172,7 @@ library(dplyr)
                     box(h4("Hexagons"), width = 3, status = "warning", height = 600,
                       selectInput("hexstat", label = "statistic", selected = "median", c("mean"="mean",
                                                                                          "median"="median")),
-                      sliderInput("bin_adjust", label="size", min = 1, max = 30, value = 5, step = 0.5),
+                      sliderInput("bin_adjust", label="size", min = 3, max = 15, value = 5, step = 0.5),
                       #includeHTML("html/hexbins.html"),
                       selectInput("colorscale", label = "color scale", selected = "jet.colors",
                                   c("jet"="jet.colors",
@@ -240,7 +240,7 @@ library(dplyr)
                 ),
                 box(h4("filter"), width = 2, status = "warning",
                   selectInput("filter", label="", selected = "none",
-                              c("lateral1" ="lateral1", "midline"="midline", "lateral2"="lateral2", "none"="none"))
+                              c("midline"="midline", "lateral"="lateral", "none"="none"))
                 )
                 )
         ),

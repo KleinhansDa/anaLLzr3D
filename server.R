@@ -160,7 +160,7 @@ outliers_keep <- function(data) {
                       # labels
                         # label trailing and leading
                           dat$cxn <- (max(dat$CX..pix.)-dat$CX..pix.)*XYcal   # normalize CX against leading edge
-                          trail <- quantile(dat$cxn, 0.2, na.rm=TRUE)
+                          trail <- quantile(dat$cxn, 0.3, na.rm=TRUE)
                           dat$lt_split <- cut(dat$cxn, breaks = c(-Inf, trail, Inf), labels = c("leading", "trailing"))
                         # label midline
                           dat$ml_split <- cut(dat$CY..unit, seq(from=0, to=45, by=15), labels = c("lateral", "midline", "lateral"))
@@ -324,8 +324,7 @@ outliers_keep <- function(data) {
     observe({
       data <- datasetInput()
       cols_all <- names(Filter(is.numeric, data))
-      cols <- Filter(function(x) !any(grepl("*X|*Y|*Z|*array|*fx|*cx|*Moment|
-                                            *Ell|*Ratio|*l..pix|*f..pix|*r..pix", x)), cols_all)
+      cols <- Filter(function(x) !any(grepl("*X|*Y|*Z|*array|*fx|*cx|*Moment|*Ell|*Ratio|*Discrete|*..pix|*Min..|*Max..|dap|*radi", x)), cols_all)
       updateSelectInput(session, 'hex_var',
                         choices = cols
                         )
