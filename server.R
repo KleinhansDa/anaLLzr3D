@@ -154,16 +154,21 @@ outliers_keep <- function(data) {
                           dat$length..unit. <- (dat$Xmax..pix.-dat$Xmin..pix.)*XYcal # calculate Length and transform to unit value
                           dat$width..unit. <- (dat$Ymax..pix.-dat$Ymin..pix.)*XYcal  # calculate Width and transform to unit value
                         # ratios
-                          dat$sav <- dat$Surf..unit./dat$Vol..unit.           # calculate Surface Area to Volume ratio
-                          dat$hf <- dat$height/dat$Feret..unit.               # calculate Height/Feret ratio
-                          dat$phi <- ((atan(dat$height/dat$Feret..unit.))*180)/pi  # calculate Phi
+                          dat$ratio_sav <- dat$Surf..unit./dat$Vol..unit.                 # calculate Surface Area to Volume ratio
+                          dat$ratio_hf <- dat$height/dat$Feret..unit.               # calculate Height/Feret ratio
+                          dat$phi_angle <- ((atan(dat$height/dat$Feret..unit.))*180)/pi   # calculate Phi
                       # labels
                         # label trailing and leading
                           dat$cxn <- (max(dat$CX..pix.)-dat$CX..pix.)*XYcal   # normalize CX against leading edge
-                          trail <- quantile(dat$cxn, 0.3, na.rm=TRUE)
+                          trail <- quantile(dat$cxn, 0.2, na.rm=TRUE)
                           dat$lt_split <- cut(dat$cxn, breaks = c(-Inf, trail, Inf), labels = c("leading", "trailing"))
                         # label midline
-                          dat$ml_split <- cut(dat$CY..unit, seq(from=0, to=45, by=15), labels = c("lateral", "midline", "lateral"))
+                          ml1 <- quantile(dat$CY..unit, 0.2, na.rm=TRUE)
+                          ml2 <- quantile(dat$CY..unit, 0.8, na.rm=TRUE)
+                          print(paste0("CY min: ", round(min(dat$CY..unit), 1), ", CY max: ", round(max(dat$CY..unit.), 1)))
+                          print(paste0("ml1: ", round(ml1, 1), ", ml2: ", round(ml2, 1)))
+                          #dat$ml_split <- cut(dat$CY..unit, seq(from=0, to=45, by=15), labels = c("lateral", "midline", "lateral"))
+                          dat$ml_split <- cut(dat$CY..unit, breaks = c(-Inf, ml1, ml2, Inf), labels = c("lateral", "midline", "lateral"))
                       # transform pix to microns
                         dat$Zmax..pix. <- dat$Zmax..pix.*Zcal
                         dat$Zmin..pix. <- dat$Zmin..pix.*Zcal
@@ -193,6 +198,11 @@ outliers_keep <- function(data) {
                         dat$obj <- 0:(nrow(dat)-1)
                         dat$clearid <- paste0(dat$stage, dat$group, dat$id, dat$date)
                         dat$clearobj <- paste0(dat$stage, dat$group, dat$id, dat$date, dat$obj)
+                      # rename cols
+                        names(dat)[names(dat) == "ACIMajor"] <- "ai_major"
+                        names(dat)[names(dat) == "ACIMinor"] <- "ai_minor"
+                        names(dat)[names(dat) == "MajorAngle"] <- "ai_angle"
+                        names(dat)[names(dat) == "Dap"] <- "dap"
                       # row bind
                         if (j > 1) {
                           temp <- rbind(temp, dat)
@@ -236,7 +246,6 @@ outliers_keep <- function(data) {
                   rm(i, id)
                 # merge data
                   print("joining data")
-                  #data <- cbind(M_data, select_if(ac_data, is.numeric), select_if(feret_data, is.numeric))
                   data <- join(M_data, ac_data, by="clearobj") %>%
                     join(., feret_data, by="clearobj")
                   data <- data[!duplicated(as.list(data))]
@@ -253,53 +262,55 @@ outliers_keep <- function(data) {
                            which(sapply(.,is.factor)), 
                            everything())
                 # merge major and minor aci
-                  data$aci <- sqrt(data$ACIMajor*data$ACIMinor)
+                  data$ai <- data$ai_major*data$ai_minor
                 # normalize to lateral height
-                  data$aci <- data$Feret..unit./data$aci
-                  data$ACIMajor <- data$Feret..unit./data$ACIMajor 
-                  data$ACIMinor <- data$Feret..unit./data$ACIMajor
-                # clean quantiles
+                  data$ai <- data$Feret..unit./data$ai
+                  data$ai_major <- data$Feret..unit./data$ai_major 
+                  data$ai_minor <- data$Feret..unit./data$ai_minor
+                # normalize data
+                  data$DCSD..unit. <- data$DCSD..unit./(1/data$Vol..unit.)
+                  data$DCMean..unit. <- data$DCMean..unit./(1/data$Vol..unit.)
+                # clean outliers
+                  print("cleaning outliers")
                   data <- data %>%
                     group_by(stage, group) %>%
                     mutate(vol_out = isnt_out_tukey(Vol..unit.)) %>%
-                    mutate(aci_out = isnt_out_tukey(aci)) %>%
-                    mutate(sav_out = isnt_out_tukey(sav))
+                    mutate(ai_out = isnt_out_tukey(ai)) %>%
+                    mutate(sav_out = isnt_out_tukey(ratio_sav))
                   data <- data %>%
                     filter(vol_out == "TRUE") %>%
-                    filter(aci_out == "TRUE") %>%
+                    filter(ai_out == "TRUE") %>%
                     filter(sav_out == "TRUE")
                   return(data)
-             })
-    })
+             }
+             )
+      })
     ### dataset.name --------------
     datasetname <- reactive({
       input$dataset
-    })
+      })
     ### colour scale --------------
     colorscaleInput <- reactive({
       switch(input$colorscale,
              "jet.colors" = jet.colors(40),
-             "angle.colors" = angle.colors(100))
-    })
+             "angle.colors" = angle.colors(100)
+             )
+      })
     ### stats --------------
     sumstatInput <- reactive({
       switch(input$sumstat,
              "mean" = function (x) {mean(x, na.rm=T)},
              "median" = function (x) {median(x, na.rm=T)},
              "min" = function (x) {min(x, na.rm=T)},
-             "max" = function (x) {max(x, na.rm=T)})
-    })
+             "max" = function (x) {max(x, na.rm=T)}
+             )
+      })
     hexstatInput <- reactive({
       switch(input$hexstat,
              "mean" = mean,
-             "median" = median)
-    })
-    fitInput <- reactive({
-      switch(input$fit,
-             "lm" = lm,
-             "glm" = glm,
-             "loess" = loess)
-    })
+             "median" = median
+             )
+      })
     ### dataset textoutput ------------
     output$datasetname <- renderText({
       datasetname()
@@ -324,28 +335,27 @@ outliers_keep <- function(data) {
     observe({
       data <- datasetInput()
       cols_all <- names(Filter(is.numeric, data))
-      cols <- Filter(function(x) !any(grepl("*X|*Y|*Z|*array|*fx|*cx|*Moment|*Ell|*Ratio|*Discrete|*..pix|*Min..|*Max..|dap|*radi", x)), cols_all)
+      cols <- Filter(function(x) !any(grepl("*X|*Y|*Z|*array|*fx|*cx|*Moment|*Ell|*Ratio|*Discrete|*..pix|*Min..|*Max..|dap|obj|*radi", x)), cols_all)
       updateSelectInput(session, 'hex_var',
-                        choices = cols
+                        choices = sort(cols)
                         )
       updateSelectInput(session, 'dist_var',
-                        choices = cols,
+                        choices = sort(cols),
                         selected = cols[2]
       )
       updateSelectInput(session, 'statvariable',
-                        choices = cols,
-                        selected = cols[2]
+                        choices = sort(cols)
       )
       updateSelectInput(session, 'viol_var',
-                        choices = cols,
+                        choices = sort(cols),
                         selected = cols[2]
       )
       updateSelectInput(session, 'scat_var1',
-                        choices = cols,
+                        choices = sort(cols),
                         selected = cols[2]
       )
       updateSelectInput(session, 'scat_var2',
-                        choices = cols,
+                        choices = sort(cols),
                         selected = cols[6]
       )
       })
@@ -362,7 +372,19 @@ outliers_keep <- function(data) {
       )
       data <- datasetInput()
     }
-    data$group <- relevel(data$group, input$ref_group)
+    # subset
+    if (input$filter_hex == "lateral") {
+      data <- subset(data, ml_split == "lateral")
+    }
+    if (input$filter_hex == "midline") {
+      data <- subset(data, ml_split == "midline")
+    }
+    if (input$filter_hex == "leading") {
+      data <- subset(data, lt_split == "leading")
+    }
+    if (input$filter_hex == "trailing") {
+      data <- subset(data, lt_split == "trailing")
+    }
     ## colors
       ggplot(data, aes_string(x=input$pointx, y=input$pointy, z=input$hex_var)) +
         #stat_density_2d(aes(fill=..density..), geom="raster", contour=FALSE) +
@@ -436,6 +458,19 @@ outliers_keep <- function(data) {
       nlevels_group <- nlevels(data$group)
       #colors <- brewer.pal(nlevels_group, "Set1")
       colors <- get_palette(palette = "npg", nlevels_group)
+    # subset
+      if (input$filter_viol == "lateral") {
+        data <- subset(data, ml_split == "lateral")
+      }
+      if (input$filter_viol == "midline") {
+        data <- subset(data, ml_split == "midline")
+      }
+      if (input$filter_viol == "leading") {
+        data <- subset(data, lt_split == "leading")
+      }
+      if (input$filter_viol == "trailing") {
+        data <- subset(data, lt_split == "trailing")
+      }
     # ggplot
       ggplot(data, aes_string(x = "group", y = input$viol_var, fill="group")) +
         stat_ydensity(aes(), geom = "violin", adjust = .5, kernel = "gaussian",
@@ -477,6 +512,19 @@ outliers_keep <- function(data) {
         levels_group <- levels(data$group)
         nlevels_group <- nlevels(data$group)
         colors <- get_palette(palette = "npg", nlevels_group)
+      # subset
+        if (input$filter_sum == "lateral") {
+          data <- subset(data, ml_split == "lateral")
+        }
+        if (input$filter_sum == "midline") {
+          data <- subset(data, ml_split == "midline")
+        }
+        if (input$filter_sum == "leading") {
+          data <- subset(data, lt_split == "leading")
+        }
+        if (input$filter_sum == "trailing") {
+          data <- subset(data, lt_split == "trailing")
+        }
       # ggplot
       ggplot(data, aes_string(x = "group", y = "cell_count")) +
       # geoms
@@ -505,7 +553,6 @@ outliers_keep <- function(data) {
         theme(axis.title.x = element_blank(),
               axis.text.x = element_blank(),
               axis.ticks.x = element_blank())
-      
     }#, width=1000, height=250
     )
   # sum_stats ----------------------------------------------------------------------
@@ -513,7 +560,7 @@ outliers_keep <- function(data) {
     ## select data
     if (input$dataset == "sample data"){
       data <- datasetInput()
-    } 
+    }
     if (input$dataset == "my data"){
       validate(
         need(input$data_upload != "", "No data to process, please upload")
@@ -523,16 +570,16 @@ outliers_keep <- function(data) {
     # check aci
     if (c("roset") %in% names(data)) {
       sum_set <- c("stage", "group", "clearid", 
-                   "aci_major", "aci_minor", "aci_angle", "aci", "phi",
+                   "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
                    "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
-                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                   "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf", "Spher..unit.",
                    "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
                    "detect", "w.detect", "roset")
     } else {
       sum_set <- c("stage", "group", "clearid", 
-                   "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
+                   "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
                    "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
-                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                   "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf",
                    "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
     }
     # levels & colors
@@ -542,6 +589,18 @@ outliers_keep <- function(data) {
       #colors <- brewer.pal(nlevels_group, "Set1")
       colors <- get_palette(palette = "npg", nlevels_group)
     # subset
+      if (input$filter_sum == "lateral") {
+        data <- subset(data, ml_split == "lateral")
+      }
+      if (input$filter_sum == "midline") {
+        data <- subset(data, ml_split == "midline")
+      }
+      if (input$filter_sum == "leading") {
+        data <- subset(data, lt_split == "leading")
+      }
+      if (input$filter_sum == "trailing") {
+        data <- subset(data, lt_split == "trailing")
+      }
       data <- data[ , sum_set]
     # summarize
       data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
@@ -650,26 +709,38 @@ outliers_keep <- function(data) {
         data <- datasetInput()
       }
     # check aci
-    if (c("roset") %in% names(data)) {
-      sum_set <- c("stage", "group", "clearid", 
-                   "aci_major", "aci_minor", "aci_angle", "aci", "phi",
-                   "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
-                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
-                   "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
-                   "detect", "w.detect", "roset")
-    } else {
-      sum_set <- c("stage", "group", "clearid", 
-                   "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
-                   "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
-                   "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
-                   "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
-    }
+      if (c("roset") %in% names(data)) {
+        sum_set <- c("stage", "group", "clearid", 
+                     "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
+                     "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                     "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf", "Spher..unit.",
+                     "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
+                     "detect", "w.detect", "roset")
+      } else {
+        sum_set <- c("stage", "group", "clearid", 
+                     "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
+                     "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                     "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf",
+                     "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
+      }
     # levels & colors
       levels_group <- levels(data$group)
       nlevels_group <- nlevels(data$group)
       #colors <- brewer.pal(nlevels_group, "npg")
       colors <- get_palette(palette = "npg", nlevels_group)
     # subset
+      if (input$filter_scat == "lateral") {
+        data <- subset(data, ml_split == "lateral")
+      }
+      if (input$filter_scat == "midline") {
+        data <- subset(data, ml_split == "midline")
+      }
+      if (input$filter_scat == "leading") {
+        data <- subset(data, lt_split == "leading")
+      }
+      if (input$filter_scat == "trailing") {
+        data <- subset(data, lt_split == "trailing")
+      }
       data <- data[ , sum_set]
     # summarize
       data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
@@ -706,14 +777,16 @@ outliers_keep <- function(data) {
     # check aci
       if (c("roset") %in% names(data)) {
         sum_set <- c("stage", "group", "clearid", 
-                     "aci_major", "aci_minor", "aci_angle", "aci", "phi",
-                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
+                     "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                     "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf", "Spher..unit.",
                      "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
                      "detect", "w.detect", "roset")
       } else {
         sum_set <- c("stage", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
-                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
+                     "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                     "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf",
                      "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
       }
     # levels & colors
@@ -722,10 +795,22 @@ outliers_keep <- function(data) {
       #colors <- brewer.pal(nlevels_group, "Set1")
       colors <- get_palette(palette = "npg", nlevels_group)
     # subset
+      if (input$filter_pca == "lateral") {
+        data <- subset(data, ml_split == "lateral")
+      }
+      if (input$filter_pca == "midline") {
+        data <- subset(data, ml_split == "midline")
+      }
+      if (input$filter_pca == "leading") {
+        data <- subset(data, lt_split == "leading")
+      }
+      if (input$filter_pca == "trailing") {
+        data <- subset(data, lt_split == "trailing")
+      }
       data <- data[ , sum_set]
-      # only complete cases
-        data <- data[complete.cases(data), ]
-        data <- data[, colSums(is.na(data)) != nrow(data)]
+    # only complete cases
+      data <- data[complete.cases(data), ]
+      data <- data[, colSums(is.na(data)) != nrow(data)]
     # summarize
       #sumstat <- sumstatInput()
       data_sum <- ddply(data, .(stage, group, clearid), colwise(sumstatInput()))
@@ -737,17 +822,17 @@ outliers_keep <- function(data) {
         switch(input$complabel,
                "variables" = fviz_pca_biplot(data.pca,
                                           title = input$dataset, subtitle = today, caption = "ellipse level = 0.95",
-                                          pointsize = 3, pointshape = 16, 
-                                          addEllipses = TRUE, ellipse.level = 0.95,
-                                          label = "var", repel = T, col.var = "black", labelsize = 5,
+                                          pointsize = 2, pointshape = 16, alpha.ind = .3,
+                                          addEllipses = TRUE, ellipse.level = 0.95, 
+                                          label = "var", labelsize = 5, repel = T, col.var = "black", 
                                           habillage = data_sum$group, palette = colors,
                                           ggtheme = theme),
                "show none" = fviz_pca_ind(data.pca,
-                                     title = input$dataset, subtitle = today, caption = "ellipse level = 0.95",
-                                     pointsize = 3, pointshape = 16, alpha.ind = .5,
-                                     addEllipses = TRUE, ellipse.level = 0.95, label="none",
-                                     habillage = data_sum$group, palette = colors,
-                                     ggtheme = theme)
+                                          title = input$dataset, subtitle = today, caption = "ellipse level = 0.95",
+                                          pointsize = 2, pointshape = 16, alpha.ind = .3,
+                                          addEllipses = TRUE, ellipse.level = 0.95, label="none",
+                                          habillage = data_sum$group, palette = colors,
+                                          ggtheme = theme)
                )
       })
       pca_plot()
@@ -769,14 +854,16 @@ outliers_keep <- function(data) {
     # check aci
       if (c("roset") %in% names(data)) {
         sum_set <- c("stage", "group", "clearid", 
-                     "aci_major", "aci_minor", "aci_angle", "aci", "phi",
-                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
+                     "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                     "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf", "Spher..unit.",
                      "Spher..unit.","Comp..unit.", "DCMean..unit.", "DCSD..unit.",
                      "detect", "w.detect", "roset")
       } else {
         sum_set <- c("stage", "group", "clearid", 
-                     "ACIMajor", "ACIMinor", "MajorAngle", "aci", "phi",
-                     "Vol..unit.", "Surf..unit.", "sav", "Spher..unit.",
+                     "ai_major", "ai_minor", "ai_angle", "ai", "phi_angle",
+                     "Feret..unit.", "height..unit.", "length..unit.", "width..unit.",
+                     "Vol..unit.", "Surf..unit.", "ratio_sav", "ratio_hf",
                      "Spher..unit.", "Comp..unit.", "DCMean..unit.", "DCSD..unit.")
       }
     # levels & colors
@@ -791,6 +878,18 @@ outliers_keep <- function(data) {
       #colors <- brewer.pal(nlevels_group, "Set1")
       colors <- get_palette(palette = "npg", nlevels_group)
     # subset
+      if (input$filter_tsne == "lateral") {
+        data <- subset(data, ml_split == "lateral")
+      }
+      if (input$filter_tsne == "midline") {
+        data <- subset(data, ml_split == "midline")
+      }
+      if (input$filter_tsne == "leading") {
+        data <- subset(data, lt_split == "leading")
+      }
+      if (input$filter_tsne == "trailing") {
+        data <- subset(data, lt_split == "trailing")
+      }
       data <- data[complete.cases(data), ]
       data <- data[ , sum_set]
     # sumamrize

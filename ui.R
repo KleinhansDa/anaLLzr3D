@@ -151,7 +151,7 @@ library(dplyr)
                       selectInput("hex_var", label = "choose from dropdown", choices = NULL, selected = NULL),
                       includeHTML("html/variable.html")
                     ),
-                    box(h4("Mapping coordinates"), width = 3, status = "warning", height = 600,
+                    box(h4("Mapping coordinates"), width = 2, status = "warning", height = 600,
                       selectInput("pointx", label = "X coordinate:", selected = "cxn",
                                   c("centroid"="cxn",
                                     "apical feret"="fx1N",
@@ -169,7 +169,7 @@ library(dplyr)
                       ),
                       imageOutput("cell")
                     ),
-                    box(h4("Hexagons"), width = 3, status = "warning", height = 600,
+                    box(h4("Hexagons"), width = 2, status = "warning", height = 600,
                       selectInput("hexstat", label = "statistic", selected = "median", c("mean"="mean",
                                                                                          "median"="median")),
                       sliderInput("bin_adjust", label="size", min = 3, max = 15, value = 5, step = 0.5),
@@ -183,6 +183,10 @@ library(dplyr)
                         "#scale img {max-width: 100%; width: 80%; height: auto; display: block; margin-left: auto; margin-right: auto;}"
                       ),
                       imageOutput("scale")
+                    ),
+                    box(h4("filter"), width = 2, status = "warning",
+                        selectInput("filter_hex", label="", selected = "none",
+                                    c("midline", "lateral", "leading", "trailing", "none"))
                     )
                   )
                 ),
@@ -211,15 +215,12 @@ library(dplyr)
                   )
                 ),
                 fluidRow(
-                  box(h4("Geom"), width = 5, status = "warning",
-                      selectInput("count_type", label = "choose from dropdown", selected = NULL, choices = c("Boxes", "Bars"))
-                  ),
                   box(h4("statistics"), width = 3, status = "warning",
                       includeHTML("html/signif.html")
                   ),
                   box(h4("filter"), width = 2, status = "warning",
                       selectInput("filter", label="", selected = "none",
-                                  c("lateral1" ="lateral1", "midline"="midline", "lateral2"="lateral2", "none"="none"))
+                                  c("midline" = "midline", "lateral"="lateral", "none"="none"))
                   )
                 )
         ),
@@ -239,8 +240,8 @@ library(dplyr)
                     includeHTML("html/signif.html")
                 ),
                 box(h4("filter"), width = 2, status = "warning",
-                  selectInput("filter", label="", selected = "none",
-                              c("midline"="midline", "lateral"="lateral", "none"="none"))
+                  selectInput("filter_sum", label="", selected = "none",
+                              c("midline", "lateral", "leading", "trailing", "none"))
                 )
                 )
         ),
@@ -259,8 +260,8 @@ library(dplyr)
                     selectInput("fitstat", "fit function", c("lm", "glm", "loess")),
                     sliderInput("scat_span", "fit span", min = .1, max = 10, value = 1, step = .1)),
                 box(h4("filter"), width = 2, status = "warning",
-                    selectInput("filter", label="", selected = "none",
-                                c("lateral1" ="lateral1", "midline"="midline", "lateral2"="lateral2", "none"="none")))
+                    selectInput("filter_scat", label="", selected = "none",
+                                c("midline", "lateral", "leading", "trailing", "none")))
                 )
         ),
         ### correlations ----------------------------
@@ -292,14 +293,20 @@ library(dplyr)
                   ),
                 fluidRow(
                   box(h4("labels"), width = 3, status = "warning",
-                      selectInput("complabel", NULL, selected = "show none", c("show none", "variables")))
+                      selectInput("complabel", NULL, selected = "show none", c("show none", "variables"))),
+                  box(h4("filter"), width = 3, status = "warning",
+                      selectInput("filter_pca", label="", selected = "none",
+                                  c("midline", "lateral", "leading", "trailing", "none")))
                   )
         ),
         ### t-sne ----------------------------
         tabItem(tabName = "tsne",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 10,
-                      plotOutput("tsne") %>% withLoader(type="image", loader="loader.gif"))
+                      plotOutput("tsne") %>% withLoader(type="image", loader="loader.gif")),
+                  box(h4("filter"), width = 3, status = "warning",
+                      selectInput("filter_tsne", label="", selected = "none",
+                                  c("midline", "lateral", "leading", "trailing", "none")))
                   )
         ),
         ### violins ----------------------------
@@ -315,8 +322,8 @@ library(dplyr)
                   box(h4("statistics"), width = 3, status = "warning",
                     includeHTML("html/signif.html")),
                   box(h4("filter"), width = 2, status = "warning",
-                    selectInput("filter", label="", selected = "none",
-                                c("lateral1" ="lateral1", "midline"="midline", "lateral2"="lateral2", "none"="none")))
+                    selectInput("filter_viol", label="", selected = "none",
+                                c("midline", "lateral", "leading", "trailing", "none")))
                 )
         )
         )
