@@ -6,8 +6,17 @@ The **LLmapR** is a web-app to analyze the outcome of the ***anallzr3D***
 
 # anallzr3D
 
-* written in imagej macro language
+The latest version of the Plugin can be found under ~/anallzr3D/
+
+**Install**
+* simply copy it to ~/plugins/ in your FIJI home directory and re-start FIJI. 
+* after, you may find the plugin at the very bottom of your _plugins_ section or via search function.
+* if you're missing other dependent plugins you'll be notified.  
 
 # LLmapR
 
-* written in R
+The web-app is structured in two pieces
+* the back-end with processing instructions under **server.R**
+* the front-end with the user interface and input parameters under **.R**
+
+You may run the app locally by opening either the server or .. file in RStudio and selecting 'run app'. or under this link.
