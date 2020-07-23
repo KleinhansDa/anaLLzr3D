@@ -4,16 +4,17 @@ The **anallzr3D** is an imagej plugin to analyze Z-stacks of posterior lateral l
 
 The **LLmapR** is a web-app to analyze the outcome of the ***anallzr3D***
 
-# anallzr3D
+## anallzr3D
 
 The latest version of the Plugin can be found under ~/anallzr3D/
 
 **Install**
+
 * simply copy it to ~/plugins/ in your FIJI home directory and re-start FIJI. 
 * after, you may find the plugin at the very bottom of your _plugins_ section or via search function.
 * if you're missing other dependent plugins you'll be notified.  
 
-# LLmapR
+## LLmapR
 
 The web-app is structured in two pieces
 * the back-end with processing instructions under **server.R**
