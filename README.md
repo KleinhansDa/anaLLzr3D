@@ -8,6 +8,8 @@ The **LLmapR** is a web-app to analyze the outcome of the ***anallzr3D***
 
 The latest version of the Plugin can be found under ~/anallzr3D/
 
+![input dialogs]('anaLLzr3D/anaLLzr3D_macro.png')
+
 **Install**
 
 * simply copy it to ~/plugins/ in your IJ home directory and re-start IJ. 
