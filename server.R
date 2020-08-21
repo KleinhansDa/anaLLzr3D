@@ -26,42 +26,43 @@ outliers_keep <- function(data) {
 }
 #
 # libraries ----------------------------------------------------------------------
-  library(ggplot2)
-  #library(gganimate)
-  #library(plotly)
-  library(plyr)
-  #library(magrittr)
-  library(dplyr)
-  library(tidyr)
-  library(shiny)
-  library(hexbin)
-  library(ggpubr)
-  library(DT)
-  library(Hmisc)
-  library(RColorBrewer)
-  library(rlist)
-  #library(rmarkdown)
-  #library(knitr)
-  library(kableExtra)
-  library(shinycustomloader)
-  library(shinycssloaders)
-  #library(fpc)
-  library(factoextra)
-  library(FactoMineR)
-  library(ggsci)
-  library(ggalt)
-  library(Rtsne)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(shiny)
+library(hexbin)
+library(ggpubr)
+library(DT)
+library(Hmisc)
+library(RColorBrewer)
+library(rlist)
+library(kableExtra)
+library(shinycustomloader)
+library(shinycssloaders)
+library(factoextra)
+library(FactoMineR)
+library(ggsci)
+library(ggalt)
+library(Rtsne)
 # colors ----------------------------------------------------------------------
   #library(colourpicker)
-  jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
-  angle.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000", 
-                                  "red", "#FF7F00", "yellow","#7FFF7F", "cyan", "#007FFF", "blue", "#00007F"))
+jet.colors <- 
+  colorRampPalette(
+    c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000")
+    )
+
+angle.colors <- 
+  colorRampPalette(
+    c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000", "red", "#FF7F00", "yellow","#7FFF7F", "cyan", "#007FFF", "blue", "#00007F")
+    )
 # variables ----------------------------------------------------------------------
-  sum_groups <- c("hpf", "group", "id")
-  sum_vars <- c("ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.", 
-                 "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.",
-                 "DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
-  data_groups <- c("M_", "ac_", "feret_")
+sum_groups <- 
+  c("hpf", "group", "id")
+sum_vars <-
+  c("ACIMajor", "ACIMinor", "MajorAngle", "Feret..unit.", "height..unit.", "Vol..unit.", "Surf..unit.", "Spher..unit.", "Comp..unit.", "DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
+data_groups <- 
+  c("M_", "ac_", "feret_")
 # theme ----------------------------------------------------------------------
   theme <- theme_test() +
     theme(
@@ -126,7 +127,7 @@ outliers_keep <- function(data) {
                     fl.names[[i]] <- list.subset(data_input$name, grepl(pattern=data_groups[i], data_input$name)) # subset names based on data-group
                     fl[[i]] <- list.subset(data_input$datapath, grepl(pattern=data_groups[i], data_input$name)) # subset filepaths 'data[4]' based on file names
                   # 3D data
-                    if (data_groups[i]=="M_") {
+                    if (data_groups[i] == "M_") {
                       print("processing 3D data")
                       for (j in 1:length(fl.names[[i]])) {
                         dat <- read.table(fl[[i]][j], sep="\t", header=TRUE)
@@ -182,7 +183,7 @@ outliers_keep <- function(data) {
                       }
                     }
                   # ac data
-                    if (data_groups[i]=="ac_") {
+                    if (data_groups[i] == "ac_") {
                       print("processing AC data")
                       for (j in 1:length(fl.names[[i]])) {
                         dat <- read.table(fl[[i]][j], sep="\t", header=TRUE)
@@ -212,7 +213,7 @@ outliers_keep <- function(data) {
                       }
                     }
                   # feret data
-                    if (data_groups[i]=="feret_") {
+                    if (data_groups[i] == "feret_") {
                       print("processing feret data")
                       for (j in 1:length(fl.names[[i]])) {
                         dat <- read.table(fl[[i]][j], sep="\t", header=TRUE)
@@ -634,7 +635,7 @@ outliers_keep <- function(data) {
           
     }#, width=1000, height=250
   )
-    # correlations ----------------------------------------------------------------------
+  # correlations ----------------------------------------------------------------------
     output$correlations <- renderPlot({
       ## select data
       if (input$dataset == "sample data"){
@@ -696,7 +697,7 @@ outliers_keep <- function(data) {
       
     }#, width=1000, height=250
     )
-    # scatterplot ----------------------------------------------------------------------
+  # scatterplot ----------------------------------------------------------------------
     output$scatter <- renderPlot({
     ## select data
       if (input$dataset == "sample data"){
@@ -762,7 +763,7 @@ outliers_keep <- function(data) {
         theme +
           theme(axis.ticks.x = element_blank())
     })# width=1000, height=250
-    # pca ----------------------------------------------------------------------
+  # pca ----------------------------------------------------------------------
     output$pca <- renderPlot({
     ## select data
       if (input$dataset == "sample data"){
@@ -1007,5 +1008,4 @@ outliers_keep <- function(data) {
       contentType = "image/gif"
     ))
   }, deleteFile = FALSE)
-}
-)
+})

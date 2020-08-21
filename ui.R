@@ -22,26 +22,24 @@ library(dplyr)
   statopts = "options"
   buggy = "Bug reporter"
 # Vectors -----------------------------------
-  labels <- c("stage", "group", "id", "date", "none")
-  sum_vars <- c("stage", "group", "id", "date", "none")
+  labels <- c("stage","group","id","date","none")
+  #sum_vars <- c("stage","group","id","date","none")
 # Define Header -----------------------------------
   dbHeader <- dashboardHeader(title = title,
                               tags$li(a(href = 'https://user.uni-frankfurt.de/~lecaudey/', 
                                         target="_blank",
                                         img(src = 'hex1.png', height = "41px"),
                                         style = "padding-top:5px; padding-bottom:5px;"),
-                                      class = "dropdown"))
+                                      class = "dropdown")
+                              )
 # variables -----------------------------------
-  
-
-  vars <- c("DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
+  #vars <- c("DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
 # define ui ----------------------------------------------------------------------
   dashboardPage(
   ## title ----------------------------
   dbHeader,
   ## sidebar ----------------------------
     dashboardSidebar(
-      #sidebarSearchForm("test", label = "Search...", icon = shiny::icon("search")),
       selectInput(inputId = "dataset",
                   label = "Choose dataset:",
                   choices = c("sample data", "my data")),
@@ -72,10 +70,6 @@ library(dplyr)
                  )
         )
       ),
-      #selectInput("format", "Report format", c("PDF", "HTML", "Word")),
-      #textInput(inputId = "caption",
-      #          label = "Caption:",
-      #          value = "data caption"),
       sidebarMenu(
         menuItem(buggy, tabName = "buggy", icon = icon("bug"))
       )
@@ -116,20 +110,19 @@ library(dplyr)
         ### dataset ----------------------------
         tabItem(tabName = "data_upload",
                 fluidRow(
-                  box(status = "primary", title=textOutput("datasetname"),
-                      #textOutput("datasetname"),
+                  box(status = "primary", title = textOutput("datasetname"),
                       uiOutput("grouplevels"),
                       tableOutput("data_sum"),
                       downloadButton("downloadData", "Download")
                   ),
-                  box(background = "yellow", title="Instructions", solidHeader = TRUE,
+                  box(background = "yellow", title = "Instructions", solidHeader = TRUE,
                       includeHTML("html/data_instr.html")),
                   box(status = "warning", title="Define labels", solidHeader = TRUE,
                       includeHTML("html/data_labels.html"),
-                      column(width=3, selectInput("lab_1", label = "#1", selected = labels[1], choices = labels)),
-                      column(width=3, selectInput("lab_2", label = "#2", selected = labels[2], choices = labels)),
-                      column(width=3, selectInput("lab_3", label = "#3", selected = labels[3], choices = labels)),
-                      column(width=3, selectInput("lab_4", label = "#4", selected = labels[4], choices = labels))
+                      column(width = 3, selectInput("lab_1", label = "#1", selected = labels[[1]], choices = labels)),
+                      column(width = 3, selectInput("lab_2", label = "#2", selected = labels[[2]], choices = labels)),
+                      column(width = 3, selectInput("lab_3", label = "#3", selected = labels[[3]], choices = labels)),
+                      column(width = 3, selectInput("lab_4", label = "#4", selected = labels[[4]], choices = labels))
                       ),
                   box(status = "warning", title="Upload data", solidHeader = TRUE,
                       fileInput(inputId="data_upload", label = "select files",
@@ -153,13 +146,13 @@ library(dplyr)
                     ),
                     box(h4("Mapping coordinates"), width = 2, status = "warning", height = 600,
                       selectInput("pointx", label = "X coordinate:", selected = "cxn",
-                                  c("centroid"="cxn",
-                                    "apical feret"="fx1N",
-                                    "basal feret"="fx0N")
+                                  c("centroid" = "cxn",
+                                    "apical feret" = "fx1N",
+                                    "basal feret" = "fx0N")
                                   ),
                       selectInput("pointy", label = "Y coordinate:", selected = "CY..unit.",
-                                  c("centroid"="CY..unit.",
-                                    "apical feret"="fy1array",
+                                  c("centroid" = "CY..unit.",
+                                    "apical feret" = "fy1array",
                                     "basal feret" = "fy0array")
                                   ),
                       includeHTML("html/hexcoord.html"),
@@ -170,13 +163,14 @@ library(dplyr)
                       imageOutput("cell")
                     ),
                     box(h4("Hexagons"), width = 2, status = "warning", height = 600,
-                      selectInput("hexstat", label = "statistic", selected = "median", c("mean"="mean",
-                                                                                         "median"="median")),
+                      selectInput("hexstat", label = "statistic", selected = "median", 
+                                  c("mean" = "mean",
+                                    "median" = "median")),
                       sliderInput("bin_adjust", label="size", min = 3, max = 15, value = 5, step = 0.5),
                       #includeHTML("html/hexbins.html"),
                       selectInput("colorscale", label = "color scale", selected = "jet.colors",
-                                  c("jet"="jet.colors",
-                                    "angles"="angle.colors")
+                                  c("jet" = "jet.colors",
+                                    "angles" = "angle.colors")
                       ),
                       tags$style(
                         type="text/css",
@@ -185,7 +179,7 @@ library(dplyr)
                       imageOutput("scale")
                     ),
                     box(h4("filter"), width = 2, status = "warning",
-                        selectInput("filter_hex", label="", selected = "none",
+                        selectInput("filter_hex", label = "", selected = "none",
                                     c("midline", "lateral", "leading", "trailing", "none"))
                     )
                   )
@@ -194,7 +188,10 @@ library(dplyr)
         tabItem(tabName = "freq",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 9, 
-                      column(width = 12, plotOutput("frequencies") %>% withLoader(type="image", loader="loader.gif")))
+                      column(width = 12, plotOutput("frequencies") %>% 
+                               withLoader(type="image", loader="loader.gif")
+                             )
+                      )
                   ),
                 fluidRow(
                   box(h4("variable"), width = 3, status = "warning",
@@ -211,7 +208,8 @@ library(dplyr)
         tabItem(tabName = "counts",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 10,
-                      plotOutput("counts") %>% withLoader(type="image", loader="loader.gif")
+                      plotOutput("counts") %>% 
+                        withLoader(type="image", loader="loader.gif")
                   )
                 ),
                 fluidRow(
@@ -228,7 +226,8 @@ library(dplyr)
         tabItem(tabName = "sum_stats",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 10,
-                    plotOutput("sum_stats") %>% withLoader(type="image", loader="loader.gif")
+                    plotOutput("sum_stats") %>% 
+                      withLoader(type="image", loader="loader.gif")
                   )
                 ),
                 fluidRow(
@@ -249,7 +248,9 @@ library(dplyr)
         tabItem(tabName = "scatter",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 10,
-                      plotOutput("scatter") %>% withLoader(type="image", loader="loader.gif"))
+                      plotOutput("scatter") %>% 
+                        withLoader(type="image", loader="loader.gif")
+                      )
                 ),
                 fluidRow(
                 box(h4("scatter"), width = 5, status = "warning",
@@ -260,36 +261,16 @@ library(dplyr)
                     selectInput("fitstat", "fit function", c("lm", "glm", "loess")),
                     sliderInput("scat_span", "fit span", min = .1, max = 10, value = 1, step = .1)),
                 box(h4("filter"), width = 2, status = "warning",
-                    selectInput("filter_scat", label="", selected = "none",
+                    selectInput("filter_scat", label = "", selected = "none",
                                 c("midline", "lateral", "leading", "trailing", "none")))
                 )
         ),
-        ### correlations ----------------------------
-        #tabItem(tabName = "corrs",
-        #       fluidRow(
-        #          box(status = "primary", solidHeader = TRUE, width = 9,
-        #              plotOutput("correlations") %>% withLoader(type="image", loader="loader.gif")
-        #          )
-        #        ),
-        #        box(h4("correlate"), width = 3, status = "warning",
-        #            selectInput("corrvar1", label = "variable 1", c("ACIMajor" = "ACIMajor")),
-        #            selectInput("corrvar2", label = "variable 2", c("roset" = "roset")),
-        #            includeHTML("html/variable.html")
-        #        ),
-        #        box(h4("statistics"), width = 3, status = "warning",
-        #            selectInput("corstat", "cor function", c("pearson", "kendall", "spearman"))
-        #        ),
-        #        box(h4("filter"), width = 2, status = "warning",
-        #            selectInput("filter", label="", selected = "none",
-        #                        c("lateral1" ="lateral1", "midline"="midline", "lateral2"="lateral2", "none"="none")
-        #            )
-        #        )
-        #),
         ### pca ----------------------------
         tabItem(tabName = "pca",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 8,
-                      plotOutput("pca") %>% withLoader(type="image", loader="loader.gif"))
+                      plotOutput("pca") %>% 
+                        withLoader(type="image", loader="loader.gif"))
                   ),
                 fluidRow(
                   box(h4("labels"), width = 3, status = "warning",
@@ -303,7 +284,8 @@ library(dplyr)
         tabItem(tabName = "tsne",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 10,
-                      plotOutput("tsne") %>% withLoader(type="image", loader="loader.gif")),
+                      plotOutput("tsne") %>% 
+                        withLoader(type="image", loader="loader.gif")),
                   box(h4("filter"), width = 3, status = "warning",
                       selectInput("filter_tsne", label="", selected = "none",
                                   c("midline", "lateral", "leading", "trailing", "none")))
@@ -313,7 +295,7 @@ library(dplyr)
         tabItem(tabName = "violins",
                 fluidRow(
                   box(status = "primary", solidHeader = TRUE, width = 10,
-                    plotOutput("violins") %>% withSpinner(type=7, size=.5, color="#3c8dbc"))
+                    plotOutput("violins"))
                 ),
                 fluidRow(
                   box(h4("variable"), width = 5, status = "warning",
