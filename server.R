@@ -1,3 +1,4 @@
+shiny::runApp(display.mode="showcase")
 # functions ----------------------------------------------------------------------
 testit <- function(x) {
   p1 <- proc.time()
