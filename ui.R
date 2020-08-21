@@ -23,7 +23,8 @@ library(dplyr)
   buggy = "Bug reporter"
 # Vectors -----------------------------------
   labels <- c("stage","group","id","date","none")
-  #sum_vars <- c("stage","group","id","date","none")
+  sum_vars <- c("stage","group","id","date","none")
+  vars <- c("DCMean..unit.", "sav", "phi", "detect", "w.detect", "roset")
 # Define Header -----------------------------------
   dbHeader <- dashboardHeader(title = title,
                               tags$li(a(href = 'https://user.uni-frankfurt.de/~lecaudey/', 
