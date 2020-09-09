@@ -1,4 +1,4 @@
-shiny::runApp(display.mode="showcase")
+#shiny::runApp(display.mode="showcase")
 # functions ----------------------------------------------------------------------
 testit <- function(x) {
   p1 <- proc.time()
@@ -125,13 +125,13 @@ data_groups <-
                   fl.names <- list()
                #  loop over data_groups
                   for (i in 1:length(data_groups)) {
-                    fl.names[[i]] <- list.subset(data_input$name, grepl(pattern=data_groups[i], data_input$name)) # subset names based on data-group
-                    fl[[i]] <- list.subset(data_input$datapath, grepl(pattern=data_groups[i], data_input$name)) # subset filepaths 'data[4]' based on file names
+                    fl.names[[i]] <- list.subset(data_input$name, grepl(pattern = data_groups[i], data_input$name)) # subset names based on data-group
+                    fl[[i]] <- list.subset(data_input$datapath, grepl(pattern = data_groups[i], data_input$name)) # subset filepaths 'data[4]' based on file names
                   # 3D data
                     if (data_groups[i] == "M_") {
                       print("processing 3D data")
                       for (j in 1:length(fl.names[[i]])) {
-                        dat <- read.table(fl[[i]][j], sep="\t", header=TRUE)
+                        dat <- read.table(fl[[i]][j], sep = input$sep_3d, header = TRUE)
                       # delete columns + split label
                         dat$Nb <- NULL
                         dat$Type <- NULL
@@ -318,20 +318,23 @@ data_groups <-
       datasetname()
     })
     ### ref groups reactive ui --------------
-    output$refgroup <- reactiveUI(function(){
+    output$refgroup <- renderUI({
       data <- datasetInput()
       levels <- levels(data$group)
       selectInput("ref_group", "ref.group", levels)
     })
     ### factor groups reactive ui --------------
-    output$grouplevels <- reactiveUI(function(){
-      data <- datasetInput()
-      nlevels <- nlevels(data$group)
-      nstage <- nlevels(data$stage)
-      nid <- nlevels(data$clearid)
-      nobj <- nrow(data)
-      paste("The dataset consists of", nstage, "stages,", nlevels, "groups,", nid, "embryos and", nobj, "single cells.")
-    })
+    output$grouplevels <- renderUI({
+        data <- datasetInput()
+        string <-
+        paste(
+          "The dataset consists of", 
+          nlevels(data$stage), "stages,", 
+          nlevels(data$group), "groups,", 
+          nlevels(data$clearid), "embryos and", 
+          nrow(data), "single cells."
+          )
+        })
     
   ## inputs --------------
     observe({
