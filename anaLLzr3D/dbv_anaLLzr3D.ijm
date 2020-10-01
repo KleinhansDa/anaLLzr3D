@@ -120,53 +120,72 @@
 			Dialog.addCheckbox("Apical Constriction", false); 						// 17	cellAC
 			//Dialog.addCheckbox("Feret Coordinates", false); 						// 18	fercon
 		info();
-		Dialog.show();																// ## get params ##
-			//multi = Dialog.getCheckbox();											// 01	multi
-			multi = false;
-			//C1label = Dialog.getChoice();											// 02	C1
-			C1label = "515";
-			//C2label = Dialog.getChoice();											// 03	C2
-			C2label = " ";
-			//inv = Dialog.getCheckbox();											// 04	inv
-			inv = false;
-			//ts = Dialog.getCheckbox();											// 05	ts
-			ts = false;
-			//decon = Dialog.getCheckbox();											// 06	decon
-			decon = false;
-			format = Dialog.getChoice();											// 07	format
-			rev = Dialog.getChoice();												// 08	rev
-			reg = Dialog.getCheckbox();												// 09	reg
-			meta = Dialog.getCheckbox(); 											// 10	meta
-			//ferrr = Dialog.getCheckbox();											// 11	ferrr
-			ferrr = false;
-			manual = Dialog.getCheckbox();											// 12	manual
-			tol = Dialog.getNumber();												// 13	tol
-			vmin = Dialog.getNumber();												// 14	vmin
-			vmax = Dialog.getNumber();												// 15	vmax
-			//rosAC = Dialog.getCheckbox();											// 16	rosAC
-			rosAC = false;
-			cellAC = Dialog.getCheckbox();											// 17	cellAC
-			fercon = false;															// 18	fercon
+		Dialog.show();																
+		// ## get params ##
+		//multi = Dialog.getCheckbox();											// 01	multi
+		multi = false;
+		//C1label = Dialog.getChoice();											// 02	C1
+		C1label = "515";
+		//C2label = Dialog.getChoice();											// 03	C2
+		C2label = " ";
+		//inv = Dialog.getCheckbox();											// 04	inv
+		inv = false;
+		//ts = Dialog.getCheckbox();											// 05	ts
+		ts = false;
+		//decon = Dialog.getCheckbox();											// 06	decon
+		decon = false;
+		format = Dialog.getChoice();											// 07	format
+		rev = Dialog.getChoice();												// 08	rev
+		reg = Dialog.getCheckbox();												// 09	reg
+		meta = Dialog.getCheckbox(); 											// 10	meta
+		//ferrr = Dialog.getCheckbox();											// 11	ferrr
+		ferrr = false;
+		manual = Dialog.getCheckbox();											// 12	manual
+		tol = Dialog.getNumber();												// 13	tol
+		vmin = Dialog.getNumber();												// 14	vmin
+		vmax = Dialog.getNumber();												// 15	vmax
+		//rosAC = Dialog.getCheckbox();											// 16	rosAC
+		rosAC = false;
+		cellAC = Dialog.getCheckbox();											// 17	cellAC
+		fercon = false;															// 18	fercon
 //	Deconvolution dialog
-	if (decon) {
-		Dialog.create(header);
-		Dialog.addMessage("Number of Iterations for deconvolution"); 							
-		Dialog.addSlider("[n]", 1, 10, 5); 											// 17	iter
-		Dialog.show();																// ## get params ##
-		iter = Dialog.getNumber();													// 17	iter
-	}
+	//if (decon) {
+	//	Dialog.create(header);
+	//	Dialog.addMessage("Number of Iterations for deconvolution"); 							
+	//	Dialog.addSlider("[n]", 1, 10, 5); 										// 17	iter
+	//	Dialog.show();															// ## get params ##
+	//	iter = Dialog.getNumber();												// 17	iter
+	//}
+	
 // 	print to log
+
 	print("Macro options:");
 	print("   Z Order: "+rev);
 	print("   File format: '"+format+"'");
-	if (reg) {print("   Primordium Registration: true");} else {print("   Primordium Registration: false");}
+	if (reg) {
+		print("   Primordium Registration: true");
+		} else {
+			print("   Primordium Registration: false");
+			}
 	if (cellAC) {
 		fercon = true;
 		print("   Apical Constriction: true\n      Segmentation threshold: "+tol);
-		} else {print("   Apical Constriction: false");}
-	if (fercon) {print("   Feret Coordinates: true");} else {print("   Feret Coordinates: false");}
-	if (meta) {print("   Saving metadata");} else {print(" ");}
+		} else {
+			print("   Apical Constriction: false");
+			}
+	if (fercon) {
+		print("   Feret Coordinates: true");
+		} else {
+			print("   Feret Coordinates: false");
+			}
+	if (meta) {
+		print("   Saving metadata");
+		} else {
+			print(" ");
+			}
+	
 //	Cell Constriction Dialog
+
 	if (cellAC) {
 		ACMeasure = newArray("ellipsoid", "bounding", "area");
 		Dialog.create(header);
@@ -176,30 +195,30 @@
 			Dialog.addSlider("%", 10, 40, 20); 										// 22	cell%
 			Dialog.setInsets(0,20,0);
 		Dialog.addChoice("AC measurement", ACMeasure);								// 23	ACM
-		//Dialog.addCheckbox("Save cell segments", false);							// 24	cellseg
 		Dialog.show();																// ## get params ##
-			fixAC = Dialog.getCheckbox();											// 19	fixAC
-			cellum = Dialog.getNumber();											// 20	cellum
-			symAC = Dialog.getCheckbox();											// 21	cellACd
-			if (symAC) {																	
-				cellum = Dialog.getNumber();										// 22	cell%								
-				cellum = cellum/100;
-			}
-			ACM = Dialog.getChoice();												// 23	ACM
+	//	## get params ##
+		fixAC = Dialog.getCheckbox();											// 19	fixAC
+		cellum = Dialog.getNumber();											// 20	cellum
+		symAC = Dialog.getCheckbox();											// 21	cellACd
+		if (symAC) {																	
+			cellum = Dialog.getNumber();										// 22	cell%								
+			cellum = cellum/100;
+		}
+		ACM = Dialog.getChoice();												// 23	ACM
 	}
 //	Rosette Constriction Dialog
-	if (rosAC) {
-		Dialog.create(header);
-		Dialog.addMessage("Rosette Radius (pixels)"); 								// 19	fixAC
-		Dialog.addSlider("px", 50, 100, 70);										// 20	cellum
-		Dialog.addMessage("Distance from apical tip"); 								// 19	fixAC
-		Dialog.addSlider("µm", 1, 10, 3); 											// 17	rosum
-		Dialog.show();																// ## get params ##
-			radius = Dialog.getNumber();											// 20	rad
-			rosum = Dialog.getNumber();												// 17	rosum
-	}
+	//if (rosAC) {
+	//	Dialog.create(header);
+	//	Dialog.addMessage("Rosette Radius (pixels)"); 								// 19	fixAC
+	//	Dialog.addSlider("px", 50, 100, 70);										// 20	cellum
+	//	Dialog.addMessage("Distance from apical tip"); 								// 19	fixAC
+	//	Dialog.addSlider("µm", 1, 10, 3); 											// 17	rosum
+	//	Dialog.show();																// ## get params ##
+	//		radius = Dialog.getNumber();											// 20	rad
+	//		rosum = Dialog.getNumber();												// 17	rosum
+	//}
 //	DIALOG Format
-	if (format=="other") {
+	if (format == "other") {
 		Dialog.create("your file format");
 		//Dialog.addMessage("Projection Method");
 		Dialog.addString("format:", ".[??]", 6);
@@ -210,8 +229,8 @@
 	if (cellAC) {
 		print("Apical Constriction Measurement");
 		if (fixAC) {
-			print("    Fix ACI: true, "+cellum+" µm");} 
-			else {print("    Relative ACI, "+cellum*100+" %, "+ ACM);
+			print("    Fix ACI: true, "+ cellum +" µm");} 
+			else {print("    Relative ACI, "+ cellum*100 +" %, "+ ACM);
 			}
 	} else {
 		print("   Apical Constriction: false");
@@ -977,11 +996,11 @@
 						da = ferr*cellum;
 						print("symAC: "+da);
 						da = round(da);
-						if (da==0) {
-						da = 1;
+						if (da == 0) {
+							da = 1;
 						}
-					print("  proportional delta: "+da);
-					Dap[k] = da;
+						print("  proportional delta: "+da);
+						Dap[k] = da;
 					}
 					toString(obj);
 					objlabelArray[k] = obj;
@@ -999,7 +1018,7 @@
 						getStatistics(area, mean, min, max, std, histogram);
 						if(max > 0) { // from apical
 						smax = l-1;
-						run("Slice Remover", "first=1 last="+smax+" increment=1");
+						run("Slice Remover", "first=1 last="+ smax +" increment=1");
 						run("Reverse");
 						getDimensions(width, height, channels, slices, frames);
 						for(l = 1; l < slices &&!done; l++) { // from basal
@@ -1007,7 +1026,7 @@
 							getStatistics(area, mean, min, max, std, histogram);
 							if(max > 0) {
 							smax = l-1;
-							run("Slice Remover", "first=1 last="+smax+" increment=1");
+							run("Slice Remover", "first=1 last="+ smax +" increment=1");
 							run("Reverse");
 							done = true;
 							}
@@ -1023,21 +1042,21 @@
 						db = naci - da;
 					}
 					if (aciza < (nacimax)) { 	// if fixed ACI
-					acizb = naci - aciza;
-				//	MEASURE APICAL
-					selectWindow(primcell);
-					run("Make Binary", "method=Default background=Default calculate black");
-					setSlice(aciza);
-					run("Set Measurements...", "area centroid bounding fit feret's redirect=None decimal=2");
-					run("Analyze Particles...", "display slice");
-				//	Get Angle
-					MajorAngle[k] = getResult("FeretAngle", 0);
+						acizb = naci - aciza;
+					//	MEASURE APICAL
+						selectWindow(primcell);
+						run("Make Binary", "method=Default background=Default calculate black");
+						setSlice(aciza);
+						run("Set Measurements...", "area centroid bounding fit feret's redirect=None decimal=2");
+						run("Analyze Particles...", "display slice");
+					//	Get Angle
+						MajorAngle[k] = getResult("FeretAngle", 0);
 					//print("meanline: "+meanline+", CY: "+cy);
-					if (MajorAngle[k] > 90) {
-					//	apAngle[k] = apAngle[k]+180;
-					//}
-						MajorAngle[k] = 90-(MajorAngle[k]-90);
-					}
+						if (MajorAngle[k] > 90) {
+						//	apAngle[k] = apAngle[k]+180;
+						//}
+							MajorAngle[k] = 90-(MajorAngle[k]-90);
+						}
 				//	Get Max Feret / bounding width / area / Major
 					resultsArray = newArray(nResults());
 					if (ACM == "ellipsoid") {
@@ -1049,10 +1068,10 @@
  							total = total + resultsArray[p]; 
 						}
 					}
-					if (ACM=="ellipsoid") {
+					if (ACM == "ellipsoid") {
 						ACIMajor[k] = total;
 					}
-					if (ACM=="bounding") {
+					if (ACM == "bounding") {
 						apbw[k] = total;
 					}
 				//	Get Min Feret / bounding height / Minor
@@ -1066,10 +1085,10 @@
  							total = total + resultsArray[p]; 
 						}
 					}
-					if (ACM=="ellipsoid") {
+					if (ACM == "ellipsoid") {
 						ACIMinor[k] = total;
 					}
-					if (ACM=="bounding") {
+					if (ACM == "bounding") {
 						apbh[k] = total;
 					}
 					run("Clear Results");
@@ -1150,12 +1169,12 @@
 					Ext.Manager3D_Reset();
 					} // for loop cells
 					Ext.Manager3D_Close();
-					if (ACM=="ellipsoid") {
-					Array.show("Results (row numbers)", objlabelArray, ACIMajor, ACIMinor, MajorAngle, Dap);
-					}
-					if (ACM=="bounding") {
-					Array.show("Results (row numbers)", objlabelArray, apbw, apbh, MajorAngle, Dap);
-					}
+					if (ACM == "ellipsoid") {
+						Array.show("Results (row numbers)", objlabelArray, ACIMajor, ACIMinor, MajorAngle, Dap);
+						}
+					if (ACM == "bounding") {
+						Array.show("Results (row numbers)", objlabelArray, apbw, apbh, MajorAngle, Dap);
+						}
 					saveAs("results", datcelldir + "ac_" + name + ".txt");
 					results();
 					wait(500);
